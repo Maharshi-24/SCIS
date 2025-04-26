@@ -643,28 +643,74 @@ namespace SCIS.Controllers
         [Authorize(Roles = "SystemAdmin,ContentAdmin,ClubPresident")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var evt = await _context.Events.FindAsync(id);
-            if (evt == null)
+            if (id <= 0)
             {
-                return NotFound();
+                TempData["ErrorMessage"] = "Invalid event ID.";
+                return RedirectToAction(nameof(Index));
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
-            var isAdmin = await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.SystemAdmin) ||
-                          await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.ContentAdmin);
-
-            // Verify user has permission to delete this event
-            if (!isAdmin)
+            try
             {
-                var club = await _context.Clubs.FindAsync(evt.ClubId);
-                if (club == null || club.PresidentId != currentUser.Id)
+                // Find the event
+                var evt = await _context.Events.FindAsync(id);
+                if (evt == null)
                 {
-                    return Forbid();
+                    TempData["ErrorMessage"] = $"Event with ID {id} not found.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Store event name for success message
+                string eventName = evt.Name;
+
+                // Check permissions
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
+                {
+                    TempData["ErrorMessage"] = "User authentication failed. Please log in again.";
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var isAdmin = await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.SystemAdmin) ||
+                              await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.ContentAdmin);
+
+                // Verify user has permission to delete this event
+                if (!isAdmin)
+                {
+                    var club = await _context.Clubs.FindAsync(evt.ClubId);
+                    if (club == null || club.PresidentId != currentUser.Id)
+                    {
+                        TempData["ErrorMessage"] = "You don't have permission to delete this event.";
+                        return RedirectToAction(nameof(Index));
+                    }
+                }
+
+                // Begin a transaction
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        // Delete the event
+                        _context.Events.Remove(evt);
+                        await _context.SaveChangesAsync();
+
+                        // Commit the transaction
+                        await transaction.CommitAsync();
+
+                        TempData["SuccessMessage"] = $"Event '{eventName}' has been deleted successfully.";
+                    }
+                    catch (Exception ex)
+                    {
+                        // Roll back the transaction if any operation fails
+                        await transaction.RollbackAsync();
+                        throw; // Re-throw to be caught by the outer try-catch
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting event: {ex.Message}";
+            }
 
-            _context.Events.Remove(evt);
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

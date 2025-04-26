@@ -87,55 +87,18 @@ namespace SCIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUser(string id, string userName)
         {
+            // Basic validation
+            if (string.IsNullOrEmpty(id))
+            {
+                TempData["ErrorMessage"] = "User ID is required.";
+                return RedirectToAction(nameof(Users));
+            }
+
             try
             {
-                // Log the raw form data for debugging
-                Console.WriteLine($"DeleteUser form data - id: '{id}', userName: '{userName}'");
-
-                // Check if the form data is being properly submitted
-                var form = await Request.ReadFormAsync();
-                foreach (var key in form.Keys)
-                {
-                    Console.WriteLine($"Form key: {key}, Value: {form[key]}");
-                }
-
-                // Try to get values from the form if they're not in the parameters
-                if (string.IsNullOrEmpty(id) && form.ContainsKey("id"))
-                {
-                    id = form["id"].ToString();
-                    Console.WriteLine($"Retrieved ID from form: {id}");
-                }
-
-                if (string.IsNullOrEmpty(userName) && form.ContainsKey("userName"))
-                {
-                    userName = form["userName"].ToString();
-                    Console.WriteLine($"Retrieved userName from form: {userName}");
-                }
-
-                // Validate parameters
-                if (string.IsNullOrEmpty(id) && string.IsNullOrEmpty(userName))
-                {
-                    TempData["ErrorMessage"] = "User information is required.";
-                    return RedirectToAction(nameof(Users));
-                }
-
-                // Find the user by ID or name
+                // Find the user by ID
                 var user = await _userManager.FindByIdAsync(id);
-                if (user == null && !string.IsNullOrEmpty(userName))
-                {
-                    // Try to find by name
-                    user = await _userManager.Users.FirstOrDefaultAsync(u => u.FullName == userName);
-
-                    if (user == null)
-                    {
-                        TempData["ErrorMessage"] = $"User '{userName}' not found.";
-                        return RedirectToAction(nameof(Users));
-                    }
-
-                    // Update id with the found user's ID
-                    id = user.Id;
-                }
-                else if (user == null)
+                if (user == null)
                 {
                     TempData["ErrorMessage"] = $"User with ID {id} not found.";
                     return RedirectToAction(nameof(Users));
@@ -168,92 +131,92 @@ namespace SCIS.Controllers
                     return RedirectToAction(nameof(Users));
                 }
 
-                // Begin a transaction to ensure all operations succeed or fail together
+                // Store user name for success message
+                string userFullName = user.FullName;
+
+                // Begin a transaction
                 using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
-                        // Delete user's memberships
-                        var memberships = await _context.Memberships.Where(m => m.UserId == user.Id).ToListAsync();
+                        // Step 1: Delete user's memberships
+                        var memberships = await _context.Memberships
+                            .Where(m => m.UserId == user.Id)
+                            .ToListAsync();
+
                         if (memberships.Any())
                         {
-                            Console.WriteLine($"Removing {memberships.Count} memberships for user {user.FullName}");
                             _context.Memberships.RemoveRange(memberships);
                             await _context.SaveChangesAsync();
                         }
 
-                        // Update user's event registrations
-                        var events = await _context.Events
+                        // Step 2: Update event registrations
+                        var eventsWithRegistrations = await _context.Events
                             .Where(e => e.RegisteredUsers != null && e.RegisteredUsers.Contains(user.Id))
                             .ToListAsync();
 
-                        foreach (var evt in events)
+                        foreach (var evt in eventsWithRegistrations)
                         {
-                            Console.WriteLine($"Updating registered users for event {evt.Name}");
                             var registeredUsers = evt.RegisteredUsers.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
                             registeredUsers.Remove(user.Id);
                             evt.RegisteredUsers = string.Join(",", registeredUsers);
                         }
 
-                        // Update user's event winners
+                        if (eventsWithRegistrations.Any())
+                        {
+                            await _context.SaveChangesAsync();
+                        }
+
+                        // Step 3: Update event winners
                         var eventsWithWinners = await _context.Events
                             .Where(e => e.Winners != null && e.Winners.Contains(user.Id))
                             .ToListAsync();
 
                         foreach (var evt in eventsWithWinners)
                         {
-                            Console.WriteLine($"Updating winners for event {evt.Name}");
                             var winners = evt.Winners.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
                             winners.Remove(user.Id);
                             evt.Winners = string.Join(",", winners);
                         }
 
-                        // Save changes to events
-                        if (events.Any() || eventsWithWinners.Any())
+                        if (eventsWithWinners.Any())
                         {
                             await _context.SaveChangesAsync();
                         }
 
-                        // Delete announcements created by this user
+                        // Step 4: Delete announcements created by this user
                         var announcements = await _context.Announcements
                             .Where(a => a.CreatedByUserId == user.Id)
                             .ToListAsync();
 
                         if (announcements.Any())
                         {
-                            Console.WriteLine($"Removing {announcements.Count} announcements created by user {user.FullName}");
                             _context.Announcements.RemoveRange(announcements);
                             await _context.SaveChangesAsync();
                         }
 
-                        // Delete the user
+                        // Step 5: Delete the user
                         var result = await _userManager.DeleteAsync(user);
                         if (result.Succeeded)
                         {
-                            // Commit the transaction
                             await transaction.CommitAsync();
-                            TempData["SuccessMessage"] = $"User '{user.FullName}' has been deleted successfully.";
+                            TempData["SuccessMessage"] = $"User '{userFullName}' has been deleted successfully.";
                         }
                         else
                         {
-                            // Roll back the transaction
                             await transaction.RollbackAsync();
                             TempData["ErrorMessage"] = $"Error deleting user: {string.Join(", ", result.Errors.Select(e => e.Description))}";
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Roll back the transaction if any operation fails
                         await transaction.RollbackAsync();
-                        throw; // Re-throw to be caught by the outer try-catch
+                        throw;
                     }
                 }
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"Error deleting user: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 TempData["ErrorMessage"] = $"Error deleting user: {ex.Message}";
             }
 
@@ -603,114 +566,35 @@ namespace SCIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveMember(string userId, int clubId, string userName, string clubName)
         {
+            // Basic validation
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "User ID is required";
+                return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+            }
+
+            if (clubId <= 0)
+            {
+                TempData["ErrorMessage"] = "Invalid club ID";
+                return RedirectToAction(nameof(Clubs));
+            }
+
             try
             {
-                // Log the raw form data for debugging
-                Console.WriteLine($"RemoveMember form data - userId: '{userId}', clubId: '{clubId}', userName: '{userName}', clubName: '{clubName}'");
-
-                // Check if the form data is being properly submitted
-                var form = await Request.ReadFormAsync();
-                foreach (var key in form.Keys)
-                {
-                    Console.WriteLine($"Form key: {key}, Value: {form[key]}");
-                }
-
-                // Try to get values from the form if they're not in the parameters
-                if (string.IsNullOrEmpty(userId) && form.ContainsKey("userId"))
-                {
-                    userId = form["userId"].ToString();
-                    Console.WriteLine($"Retrieved userId from form: {userId}");
-                }
-
-                if (string.IsNullOrEmpty(userName) && form.ContainsKey("userName"))
-                {
-                    userName = form["userName"].ToString();
-                    Console.WriteLine($"Retrieved userName from form: {userName}");
-                }
-
-                if (clubId <= 0 && form.ContainsKey("clubId") && int.TryParse(form["clubId"], out int formClubId))
-                {
-                    clubId = formClubId;
-                    Console.WriteLine($"Retrieved clubId from form: {clubId}");
-                }
-
-                if (string.IsNullOrEmpty(clubName) && form.ContainsKey("clubName"))
-                {
-                    clubName = form["clubName"].ToString();
-                    Console.WriteLine($"Retrieved clubName from form: {clubName}");
-                }
-
-                // Validate parameters
-                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(userName))
-                {
-                    TempData["ErrorMessage"] = "User information is required";
-                    return RedirectToAction(nameof(Clubs));
-                }
-
-                if (clubId <= 0 || string.IsNullOrEmpty(clubName))
-                {
-                    TempData["ErrorMessage"] = "Club information is required";
-                    return RedirectToAction(nameof(Clubs));
-                }
-
-                // Find the user by ID or name
+                // Find the user
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    // Try to find by name
-                    user = await _userManager.Users.FirstOrDefaultAsync(u => u.FullName == userName);
-
-                    if (user == null)
-                    {
-                        TempData["ErrorMessage"] = $"User '{userName}' not found";
-                        return RedirectToAction(nameof(ClubDetails), new { id = clubId });
-                    }
-
-                    // Update userId with the found user's ID
-                    userId = user.Id;
+                    TempData["ErrorMessage"] = $"User with ID {userId} not found";
+                    return RedirectToAction(nameof(ClubDetails), new { id = clubId });
                 }
 
-                // Find the club by ID or name
+                // Find the club
                 var club = await _context.Clubs.FindAsync(clubId);
                 if (club == null)
                 {
-                    // Try to find by name
-                    club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == clubName);
-
-                    if (club == null)
-                    {
-                        TempData["ErrorMessage"] = $"Club '{clubName}' not found";
-                        return RedirectToAction(nameof(Clubs));
-                    }
-
-                    // Update clubId with the found club's ID
-                    clubId = club.ClubId;
-                }
-
-                // Find the membership using a direct query
-                var membership = await _context.Memberships
-                    .Where(m => m.UserId == userId && m.ClubId == clubId)
-                    .FirstOrDefaultAsync();
-
-                if (membership == null)
-                {
-                    // Try again with different approach
-                    membership = await _context.Memberships
-                        .Where(m => EF.Property<string>(m, "UserId") == userId && EF.Property<int>(m, "ClubId") == clubId)
-                        .FirstOrDefaultAsync();
-
-                    if (membership == null)
-                    {
-                        // Try one more approach - get all memberships and filter manually
-                        var allMemberships = await _context.Memberships.ToListAsync();
-                        membership = allMemberships.FirstOrDefault(m => m.UserId == userId && m.ClubId == clubId);
-
-                        if (membership == null)
-                        {
-                            TempData["ErrorMessage"] = $"Membership not found for user '{userName}' in club '{clubName}'";
-                            return RedirectToAction(nameof(ClubDetails), new { id = clubId });
-                        }
-                    }
+                    TempData["ErrorMessage"] = $"Club with ID {clubId} not found";
+                    return RedirectToAction(nameof(Clubs));
                 }
 
                 // Check if user is the president
@@ -720,33 +604,24 @@ namespace SCIS.Controllers
                     return RedirectToAction(nameof(ClubDetails), new { id = clubId });
                 }
 
-                // Begin a transaction
-                using (var transaction = await _context.Database.BeginTransactionAsync())
+                // Find the membership
+                var membership = await _context.Memberships
+                    .FirstOrDefaultAsync(m => m.UserId == userId && m.ClubId == clubId);
+
+                if (membership == null)
                 {
-                    try
-                    {
-                        // Remove the membership
-                        _context.Memberships.Remove(membership);
-                        await _context.SaveChangesAsync();
-
-                        // Commit the transaction
-                        await transaction.CommitAsync();
-
-                        TempData["SuccessMessage"] = $"{userName} has been removed from the club '{clubName}' successfully";
-                    }
-                    catch (Exception ex)
-                    {
-                        // Roll back the transaction if any operation fails
-                        await transaction.RollbackAsync();
-                        throw; // Re-throw to be caught by the outer try-catch
-                    }
+                    TempData["ErrorMessage"] = $"Membership not found for user {user.FullName} in club {club.Name}";
+                    return RedirectToAction(nameof(ClubDetails), new { id = clubId });
                 }
+
+                // Remove the membership
+                _context.Memberships.Remove(membership);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"{user.FullName} has been removed from the club successfully";
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"Error removing member: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 TempData["ErrorMessage"] = $"Error removing member: {ex.Message}";
             }
 
@@ -1175,52 +1050,25 @@ namespace SCIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteClub(int id, string clubName)
         {
+            if (id <= 0)
+            {
+                TempData["ErrorMessage"] = "Invalid club ID. Please try again.";
+                return RedirectToAction(nameof(Clubs));
+            }
+
             try
             {
-                // Log the raw form data for debugging
-                Console.WriteLine($"DeleteClub form data - id: '{id}', clubName: '{clubName}'");
-
-                // Check if the form data is being properly submitted
-                var form = await Request.ReadFormAsync();
-                foreach (var key in form.Keys)
-                {
-                    Console.WriteLine($"Form key: {key}, Value: {form[key]}");
-                }
-
-                // Try to get the club name from the form if it's not in the parameter
-                if (string.IsNullOrEmpty(clubName) && form.ContainsKey("clubName"))
-                {
-                    clubName = form["clubName"].ToString();
-                    Console.WriteLine($"Retrieved club name from form: {clubName}");
-                }
-
-                // Validate the club name
-                if (string.IsNullOrEmpty(clubName))
-                {
-                    TempData["ErrorMessage"] = "Club name is required. Please try again.";
-                    return RedirectToAction(nameof(Clubs));
-                }
-
-                // Find the club by name
-                var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == clubName);
-
-                // If not found by name, try by ID
-                if (club == null && id > 0)
-                {
-                    club = await _context.Clubs.FindAsync(id);
-
-                    // If still not found, try with FirstOrDefaultAsync
-                    if (club == null)
-                    {
-                        club = await _context.Clubs.FirstOrDefaultAsync(c => c.ClubId == id);
-                    }
-                }
+                // Find the club by ID directly
+                var club = await _context.Clubs.FindAsync(id);
 
                 if (club == null)
                 {
-                    TempData["ErrorMessage"] = $"Club '{clubName}' not found.";
+                    TempData["ErrorMessage"] = $"Club with ID {id} not found.";
                     return RedirectToAction(nameof(Clubs));
                 }
+
+                // Store the club name for the success message
+                string clubNameForMessage = club.Name;
 
                 // Begin a transaction to ensure all operations succeed or fail together
                 using (var transaction = await _context.Database.BeginTransactionAsync())
@@ -1235,7 +1083,6 @@ namespace SCIS.Controllers
                         // Delete all memberships
                         if (memberships.Any())
                         {
-                            Console.WriteLine($"Removing {memberships.Count} memberships for club {club.Name}");
                             _context.Memberships.RemoveRange(memberships);
                             await _context.SaveChangesAsync();
                         }
@@ -1248,7 +1095,6 @@ namespace SCIS.Controllers
                         // Delete all events
                         if (events.Any())
                         {
-                            Console.WriteLine($"Removing {events.Count} events for club {club.Name}");
                             _context.Events.RemoveRange(events);
                             await _context.SaveChangesAsync();
                         }
@@ -1261,7 +1107,6 @@ namespace SCIS.Controllers
                         // Delete all announcements
                         if (announcements.Any())
                         {
-                            Console.WriteLine($"Removing {announcements.Count} announcements for club {club.Name}");
                             _context.Announcements.RemoveRange(announcements);
                             await _context.SaveChangesAsync();
                         }
@@ -1273,7 +1118,7 @@ namespace SCIS.Controllers
                         // Commit the transaction
                         await transaction.CommitAsync();
 
-                        TempData["SuccessMessage"] = $"Club '{club.Name}' and all associated data have been deleted successfully.";
+                        TempData["SuccessMessage"] = $"Club '{clubNameForMessage}' and all associated data have been deleted successfully.";
                     }
                     catch (Exception ex)
                     {
@@ -1285,9 +1130,6 @@ namespace SCIS.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"Error deleting club: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 TempData["ErrorMessage"] = $"Error deleting club: {ex.Message}";
             }
 
