@@ -61,9 +61,11 @@
                                                     <i class="fas fa-edit fa-sm fa-fw me-2 text-gray-400"></i>Edit
                                                 </a>
                                                 <div class="dropdown-divider"></div>
-                                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.EventId">
+                                                <button type="button" class="dropdown-item text-danger"
+                                                        data-bs-toggle="modal" data-bs-target="#deleteEventModal"
+                                                        data-event-id="@item.EventId" data-event-name="@item.Name">
                                                     <i class="fas fa-trash fa-sm fa-fw me-2 text-danger"></i>Delete
-                                                </a>
+                                                </button>
                                             }
                                         </div>
                                     </div>
@@ -103,7 +105,7 @@
                         </div>
                     }
                 </div>
-                
+
                 @if (!Model.Any(e => e.EventDate > DateTime.Now))
                 {
                     <div class="alert alert-info" role="alert">
@@ -111,7 +113,7 @@
                     </div>
                 }
             </div>
-            
+
             <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
                 <div class="row">
                     @foreach (var item in Model.Where(e => e.EventDate <= DateTime.Now).OrderByDescending(e => e.EventDate))
@@ -153,7 +155,7 @@
                         </div>
                     }
                 </div>
-                
+
                 @if (!Model.Any(e => e.EventDate <= DateTime.Now))
                 {
                     <div class="alert alert-info" role="alert">
@@ -161,7 +163,7 @@
                     </div>
                 }
             </div>
-            
+
             @if (ViewBag.IsAdmin || ViewBag.IsClubPresident)
             {
                 <div class="tab-pane fade" id="my-events" role="tabpanel" aria-labelledby="my-events-tab">
@@ -169,7 +171,7 @@
                         @{
                             var myEvents = Model.Where(e => ViewBag.ManagedClubIds.Contains(e.ClubId)).OrderByDescending(e => e.EventDate);
                         }
-                        
+
                         @foreach (var item in myEvents)
                         {
                             <div class="col-xl-4 col-md-6 mb-4">
@@ -188,9 +190,11 @@
                                                     <i class="fas fa-edit fa-sm fa-fw me-2 text-gray-400"></i>Edit
                                                 </a>
                                                 <div class="dropdown-divider"></div>
-                                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.EventId">
+                                                <button type="button" class="dropdown-item text-danger"
+                                                        data-bs-toggle="modal" data-bs-target="#deleteEventModal"
+                                                        data-event-id="@item.EventId" data-event-name="@item.Name">
                                                     <i class="fas fa-trash fa-sm fa-fw me-2 text-danger"></i>Delete
-                                                </a>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -236,7 +240,7 @@
                             </div>
                         }
                     </div>
-                    
+
                     @if (!myEvents.Any())
                     {
                         <div class="alert alert-info" role="alert">
@@ -248,3 +252,42 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Event Modal -->
+<div class="modal fade" id="deleteEventModal" tabindex="-1" aria-labelledby="deleteEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteEventModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the event <strong id="deleteEventName"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteEventForm" asp-action="DeleteConfirmed" method="post">
+                    <input type="hidden" id="deleteEventId" name="id" />
+                    <button type="submit" class="btn btn-danger">Delete Event</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Handle delete event modal
+            $('#deleteEventModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var eventId = button.data('event-id');
+                var eventName = button.data('event-name');
+
+                $('#deleteEventId').val(eventId);
+                $('#deleteEventName').text(eventName);
+            });
+        });
+    </script>
+}

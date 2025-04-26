@@ -114,7 +114,7 @@
                                     </a>
                                     <button type="button" class="btn btn-danger btn-sm" title="Delete User"
                                             data-bs-toggle="modal" data-bs-target="#deleteUserModal"
-                                            data-user-id="@user.Id" data-user-name="@user.FullName">
+                                            data-user-id="@user.Id" data-user-name="@user.FullName" data-user-email="@user.Email">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -144,6 +144,7 @@
                 <form id="deleteUserForm" asp-action="DeleteUser" method="post">
                     <input type="hidden" id="deleteUserId" name="id" />
                     <input type="hidden" id="deleteUserNameInput" name="userName" />
+                    <input type="hidden" id="deleteUserEmailInput" name="email" />
                     <button type="submit" class="btn btn-danger">Delete User</button>
                 </form>
             </div>
@@ -163,24 +164,27 @@
                 var button = $(event.relatedTarget);
                 var userId = button.data('user-id');
                 var userName = button.data('user-name');
+                var userEmail = button.data('user-email');
 
-                console.log('Delete user modal opened for user ID: ' + userId + ', name: ' + userName);
+                console.log('Delete user modal opened for user: ' + userName + ', email: ' + userEmail);
 
-                // Set both the ID and name in the form
+                // Set the ID, name, and email in the form
                 $('#deleteUserId').val(userId);
                 $('#deleteUserNameInput').val(userName);
+                $('#deleteUserEmailInput').val(userEmail);
                 $('#deleteUserName').text(userName);
             });
 
-            // Add form submission handler to ensure the ID and name are included
+            // Add form submission handler to ensure all required fields are included
             $('#deleteUserForm').on('submit', function(e) {
                 var userId = $('#deleteUserId').val();
                 var userName = $('#deleteUserNameInput').val();
+                var userEmail = $('#deleteUserEmailInput').val();
 
-                if (!userId) {
+                if (!userEmail) {
                     e.preventDefault();
-                    alert('Error: User ID is missing. Please try again.');
-                    console.error('Form submission prevented: User ID is missing');
+                    alert('Error: User email is missing. Please try again.');
+                    console.error('Form submission prevented: User email is missing');
                     return false;
                 }
 
@@ -191,7 +195,7 @@
                     return false;
                 }
 
-                console.log('Submitting delete form for user: ' + userName + ' (ID: ' + userId + ')');
+                console.log('Submitting delete form for user: ' + userName + ' (Email: ' + userEmail + ')');
             });
         });
     </script>

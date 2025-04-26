@@ -85,22 +85,22 @@ namespace SCIS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteUser(string id, string userName)
+        public async Task<IActionResult> DeleteUser(string id, string userName, string email)
         {
             // Basic validation
-            if (string.IsNullOrEmpty(id))
+            if (string.IsNullOrEmpty(email))
             {
-                TempData["ErrorMessage"] = "User ID is required.";
+                TempData["ErrorMessage"] = "User email is required.";
                 return RedirectToAction(nameof(Users));
             }
 
             try
             {
-                // Find the user by ID
-                var user = await _userManager.FindByIdAsync(id);
+                // Find the user by email
+                var user = await _userManager.FindByEmailAsync(email);
                 if (user == null)
                 {
-                    TempData["ErrorMessage"] = $"User with ID {id} not found.";
+                    TempData["ErrorMessage"] = $"User with email {email} not found.";
                     return RedirectToAction(nameof(Users));
                 }
 
@@ -604,21 +604,52 @@ namespace SCIS.Controllers
                     return RedirectToAction(nameof(ClubDetails), new { id = clubId });
                 }
 
-                // Find the membership
-                var membership = await _context.Memberships
-                    .FirstOrDefaultAsync(m => m.UserId == userId && m.ClubId == clubId);
-
-                if (membership == null)
+                // Begin a transaction
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
-                    TempData["ErrorMessage"] = $"Membership not found for user {user.FullName} in club {club.Name}";
-                    return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+                    try
+                    {
+                        // Find the membership
+                        var membership = await _context.Memberships
+                            .FirstOrDefaultAsync(m => m.UserId == userId && m.ClubId == clubId);
+
+                        if (membership == null)
+                        {
+                            TempData["ErrorMessage"] = $"Membership not found for user {user.FullName} in club {club.Name}";
+                            return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+                        }
+
+                        // Remove the membership
+                        _context.Memberships.Remove(membership);
+                        await _context.SaveChangesAsync();
+
+                        // Check if user is registered for any events in this club
+                        var clubEvents = await _context.Events
+                            .Where(e => e.ClubId == clubId && e.RegisteredUsers != null && e.RegisteredUsers.Contains(userId))
+                            .ToListAsync();
+
+                        // Remove user from registered users in club events
+                        foreach (var evt in clubEvents)
+                        {
+                            var registeredUsers = evt.RegisteredUsers.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                            registeredUsers.Remove(userId);
+                            evt.RegisteredUsers = string.Join(",", registeredUsers);
+                        }
+
+                        if (clubEvents.Any())
+                        {
+                            await _context.SaveChangesAsync();
+                        }
+
+                        await transaction.CommitAsync();
+                        TempData["SuccessMessage"] = $"{user.FullName} has been removed from the club successfully";
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
                 }
-
-                // Remove the membership
-                _context.Memberships.Remove(membership);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = $"{user.FullName} has been removed from the club successfully";
             }
             catch (Exception ex)
             {
@@ -632,51 +663,82 @@ namespace SCIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveMembership(string userId, int clubId)
         {
+            // Basic validation
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "User ID is required";
+                return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+            }
+
+            if (clubId <= 0)
+            {
+                TempData["ErrorMessage"] = "Invalid club ID";
+                return RedirectToAction(nameof(Clubs));
+            }
+
             try
             {
-                // Log the raw form data for debugging
-                Console.WriteLine($"ApproveMembership form data - userId: '{userId}', clubId: '{clubId}'");
-
-                // Validate parameters
-                if (string.IsNullOrEmpty(userId))
+                // Find the user
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
                 {
-                    TempData["ErrorMessage"] = "User ID is required";
-                    return RedirectToAction(nameof(Clubs));
-                }
-
-                if (clubId <= 0)
-                {
-                    TempData["ErrorMessage"] = "Invalid club ID";
-                    return RedirectToAction(nameof(Clubs));
-                }
-
-                // Find the membership
-                var membership = await _context.Memberships
-                    .FirstOrDefaultAsync(m => m.UserId == userId && m.ClubId == clubId);
-
-                if (membership == null)
-                {
-                    TempData["ErrorMessage"] = $"Membership request not found for user {userId} in club {clubId}";
+                    TempData["ErrorMessage"] = $"User with ID {userId} not found";
                     return RedirectToAction(nameof(ClubDetails), new { id = clubId });
                 }
 
-                // Update membership status
-                membership.Status = Constants.MembershipStatus.Approved;
-                membership.JoinedAt = DateTime.Now;
+                // Find the club
+                var club = await _context.Clubs.FindAsync(clubId);
+                if (club == null)
+                {
+                    TempData["ErrorMessage"] = $"Club with ID {clubId} not found";
+                    return RedirectToAction(nameof(Clubs));
+                }
 
-                await _context.SaveChangesAsync();
+                // Begin a transaction
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        // Find the membership
+                        var membership = await _context.Memberships
+                            .FirstOrDefaultAsync(m => m.UserId == userId && m.ClubId == clubId);
 
-                // Get user name for the success message
-                var user = await _userManager.FindByIdAsync(userId);
-                string userName = user?.FullName ?? "Member";
+                        if (membership == null)
+                        {
+                            // If membership doesn't exist, create a new one
+                            membership = new Membership
+                            {
+                                UserId = userId,
+                                ClubId = clubId,
+                                Status = Constants.MembershipStatus.Approved,
+                                JoinedAt = DateTime.Now
+                            };
 
-                TempData["SuccessMessage"] = $"{userName}'s membership has been approved successfully";
+                            _context.Memberships.Add(membership);
+                        }
+                        else
+                        {
+                            // Update existing membership
+                            membership.Status = Constants.MembershipStatus.Approved;
+                            membership.JoinedAt = DateTime.Now;
+
+                            _context.Memberships.Update(membership);
+                        }
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        TempData["SuccessMessage"] = $"{user.FullName}'s membership has been approved successfully";
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"Error approving membership: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 TempData["ErrorMessage"] = $"Error approving membership: {ex.Message}";
             }
 
@@ -687,49 +749,65 @@ namespace SCIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectMembership(string userId, int clubId)
         {
+            // Basic validation
+            if (string.IsNullOrEmpty(userId))
+            {
+                TempData["ErrorMessage"] = "User ID is required";
+                return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+            }
+
+            if (clubId <= 0)
+            {
+                TempData["ErrorMessage"] = "Invalid club ID";
+                return RedirectToAction(nameof(Clubs));
+            }
+
             try
             {
-                // Log the raw form data for debugging
-                Console.WriteLine($"RejectMembership form data - userId: '{userId}', clubId: '{clubId}'");
-
-                // Validate parameters
-                if (string.IsNullOrEmpty(userId))
+                // Find the user
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
                 {
-                    TempData["ErrorMessage"] = "User ID is required";
-                    return RedirectToAction(nameof(Clubs));
-                }
-
-                if (clubId <= 0)
-                {
-                    TempData["ErrorMessage"] = "Invalid club ID";
-                    return RedirectToAction(nameof(Clubs));
-                }
-
-                // Find the membership
-                var membership = await _context.Memberships
-                    .FirstOrDefaultAsync(m => m.UserId == userId && m.ClubId == clubId);
-
-                if (membership == null)
-                {
-                    TempData["ErrorMessage"] = $"Membership request not found for user {userId} in club {clubId}";
+                    TempData["ErrorMessage"] = $"User with ID {userId} not found";
                     return RedirectToAction(nameof(ClubDetails), new { id = clubId });
                 }
 
-                // Get user name for the success message before removing the membership
-                var user = await _userManager.FindByIdAsync(userId);
-                string userName = user?.FullName ?? "Member";
+                // Find the club
+                var club = await _context.Clubs.FindAsync(clubId);
+                if (club == null)
+                {
+                    TempData["ErrorMessage"] = $"Club with ID {clubId} not found";
+                    return RedirectToAction(nameof(Clubs));
+                }
 
-                // Remove the membership
-                _context.Memberships.Remove(membership);
-                await _context.SaveChangesAsync();
+                // Begin a transaction
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        // Find the membership
+                        var membership = await _context.Memberships
+                            .FirstOrDefaultAsync(m => m.UserId == userId && m.ClubId == clubId);
 
-                TempData["SuccessMessage"] = $"{userName}'s membership request has been rejected";
+                        if (membership != null)
+                        {
+                            // Remove the membership
+                            _context.Memberships.Remove(membership);
+                            await _context.SaveChangesAsync();
+                        }
+
+                        await transaction.CommitAsync();
+                        TempData["SuccessMessage"] = $"{user.FullName}'s membership request has been rejected";
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                // Log the exception
-                Console.WriteLine($"Error rejecting membership: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 TempData["ErrorMessage"] = $"Error rejecting membership: {ex.Message}";
             }
 
@@ -1050,20 +1128,21 @@ namespace SCIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteClub(int id, string clubName)
         {
-            if (id <= 0)
+            // Basic validation
+            if (string.IsNullOrEmpty(clubName))
             {
-                TempData["ErrorMessage"] = "Invalid club ID. Please try again.";
+                TempData["ErrorMessage"] = "Club name is required. Please try again.";
                 return RedirectToAction(nameof(Clubs));
             }
 
             try
             {
-                // Find the club by ID directly
-                var club = await _context.Clubs.FindAsync(id);
+                // Find the club by name
+                var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == clubName);
 
                 if (club == null)
                 {
-                    TempData["ErrorMessage"] = $"Club with ID {id} not found.";
+                    TempData["ErrorMessage"] = $"Club '{clubName}' not found.";
                     return RedirectToAction(nameof(Clubs));
                 }
 
@@ -1599,16 +1678,52 @@ namespace SCIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAnnouncement(int id)
         {
-            var announcement = await _context.Announcements.FindAsync(id);
-            if (announcement == null)
+            if (id <= 0)
             {
-                return NotFound();
+                TempData["ErrorMessage"] = "Invalid announcement ID.";
+                return RedirectToAction(nameof(Announcements));
             }
 
-            _context.Announcements.Remove(announcement);
-            await _context.SaveChangesAsync();
+            try
+            {
+                // Find the announcement
+                var announcement = await _context.Announcements.FindAsync(id);
+                if (announcement == null)
+                {
+                    TempData["ErrorMessage"] = $"Announcement with ID {id} not found.";
+                    return RedirectToAction(nameof(Announcements));
+                }
 
-            TempData["SuccessMessage"] = "Announcement deleted successfully";
+                // Store announcement title for success message
+                string announcementTitle = announcement.Title;
+
+                // Begin a transaction
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        // Delete the announcement
+                        _context.Announcements.Remove(announcement);
+                        await _context.SaveChangesAsync();
+
+                        // Commit the transaction
+                        await transaction.CommitAsync();
+
+                        TempData["SuccessMessage"] = $"Announcement '{announcementTitle}' has been deleted successfully.";
+                    }
+                    catch (Exception ex)
+                    {
+                        // Roll back the transaction if any operation fails
+                        await transaction.RollbackAsync();
+                        throw; // Re-throw to be caught by the outer try-catch
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Error deleting announcement: {ex.Message}";
+            }
+
             return RedirectToAction(nameof(Announcements));
         }
 
