@@ -1,0 +1,87 @@
+
+@model IEnumerable<SCIS.ViewModels.ClubViewModel>
+
+@{
+    ViewData["Title"] = "Clubs";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Clubs</h1>
+    @if (ViewBag.IsAdmin)
+    {
+        <a asp-action="Create" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50 me-2"></i>Create New Club
+        </a>
+    }
+</div>
+
+<div class="row">
+    @foreach (var item in Model)
+    {
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">@item.Name</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="dropdownMenuLink">
+                            <a class="dropdown-item" asp-action="Details" asp-route-id="@item.ClubId">
+                                <i class="fas fa-info-circle fa-sm fa-fw me-2 text-gray-400"></i>Details
+                            </a>
+                            @if (ViewBag.IsAdmin || item.PresidentId == ViewBag.CurrentUserId)
+                            {
+                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.ClubId">
+                                    <i class="fas fa-edit fa-sm fa-fw me-2 text-gray-400"></i>Edit
+                                </a>
+                                <a class="dropdown-item" asp-action="Members" asp-route-id="@item.ClubId">
+                                    <i class="fas fa-users fa-sm fa-fw me-2 text-gray-400"></i>Manage Members
+                                </a>
+                            }
+                            @if (ViewBag.IsAdmin)
+                            {
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.ClubId">
+                                    <i class="fas fa-trash fa-sm fa-fw me-2 text-danger"></i>Delete
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">@(item.Description.Length > 150 ? item.Description.Substring(0, 150) + "..." : item.Description)</p>
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Members</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@item.MemberCount</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Events</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@item.EventCount</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-top-0">
+                    <div class="d-flex align-items-center justify-content-between small">
+                        <div class="text-muted">
+                            <i class="fas fa-user me-1"></i> @item.PresidentName
+                        </div>
+                        <div>
+                            <a asp-action="Details" asp-route-id="@item.ClubId" class="btn btn-sm btn-primary">
+                                <i class="fas fa-info-circle me-1"></i> Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info" role="alert">
+        <i class="fas fa-info-circle me-2"></i> No clubs found.
+    </div>
+}

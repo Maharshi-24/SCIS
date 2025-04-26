@@ -1,0 +1,205 @@
+@model SCIS.ViewModels.AdminClubCreateViewModel
+
+@{
+    ViewData["Title"] = "Create Club";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Create New Club</h1>
+    <a asp-action="Clubs" class="d-none d-sm-inline-block btn btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50 me-2"></i>Back to Clubs
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Club Information</h6>
+    </div>
+    <div class="card-body">
+        <form asp-action="CreateClub" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mt-4">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label asp-for="IsActive" class="form-check-label"></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="form-group">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="PresidentEmail" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input asp-for="PresidentEmail" class="form-control" id="presidentEmail" placeholder="Enter email to search" autocomplete="off" />
+                            <button type="button" class="btn btn-primary" id="searchUserBtn">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                        <span asp-validation-for="PresidentEmail" class="text-danger"></span>
+                        <small class="form-text text-muted">Enter the email of the user you want to assign as president.</small>
+                        <div id="searchResults" class="mt-2 d-none">
+                            <div class="list-group" id="userSearchResults">
+                                <!-- Search results will appear here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="presidentName" class="form-label">President Name</label>
+                        <input type="text" id="presidentName" class="form-control" readonly />
+                        <input asp-for="PresidentId" type="hidden" id="presidentId" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a asp-action="Clubs" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Create Club
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        $(document).ready(function() {
+            var typingTimer;
+            var doneTypingInterval = 500; // time in ms (0.5 seconds)
+
+            // Handle president search button click
+            $('#searchUserBtn').click(function() {
+                searchUser();
+            });
+
+            // Handle input keyup for search
+            $('#presidentEmail').on('keyup', function() {
+                clearTimeout(typingTimer);
+                if ($('#presidentEmail').val()) {
+                    typingTimer = setTimeout(searchUser, doneTypingInterval);
+                } else {
+                    // Hide results if input is empty
+                    $('#searchResults').addClass('d-none');
+                    $('#userSearchResults').html('');
+                }
+            });
+
+            // Handle Enter key press in the search input
+            $('#presidentEmail').on('keypress', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    searchUser();
+                }
+            });
+
+            function searchUser() {
+                var email = $('#presidentEmail').val();
+                if (email) {
+                    // Show loading indicator
+                    $('#userSearchResults').html('<div class="p-3 text-center"><i class="fas fa-spinner fa-spin me-2"></i>Searching...</div>');
+                    $('#searchResults').removeClass('d-none');
+
+                    // Make AJAX call to search for user
+                    $.ajax({
+                        url: '/Admin/SearchUserByEmail',
+                        type: 'GET',
+                        data: { email: email },
+                        success: function(data) {
+                            if (data.success) {
+                                // User found
+                                $('#presidentId').val(data.id);
+                                $('#presidentName').val(data.fullName);
+
+                                // Show user in results
+                                var userHtml = '<a href="#" class="list-group-item list-group-item-action user-result" data-id="' + data.id + '" data-name="' + data.fullName + '">' +
+                                    '<div class="d-flex align-items-center">' +
+                                    '<div class="avatar bg-primary rounded-circle me-2" style="width: 30px; height: 30px;">' +
+                                    '<span class="avatar-text">' + data.fullName.substring(0, 1).toUpperCase() + '</span>' +
+                                    '</div>' +
+                                    '<div class="ms-2">' +
+                                    '<div class="fw-bold">' + data.fullName + '</div>' +
+                                    '<div class="small text-muted">' + data.email + '</div>' +
+                                    '<div class="small"><span class="badge bg-info">' + data.userType + '</span> <span class="badge bg-secondary">' + data.userRole + '</span></div>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '</a>';
+
+                                $('#userSearchResults').html(userHtml);
+                            } else {
+                                // User not found
+                                $('#presidentId').val('');
+                                $('#presidentName').val('');
+                                $('#userSearchResults').html('<div class="alert alert-warning m-0">No user found with this email.</div>');
+                            }
+                        },
+                        error: function() {
+                            $('#userSearchResults').html('<div class="alert alert-danger m-0">Error searching for user.</div>');
+                            $('#presidentId').val('');
+                            $('#presidentName').val('');
+                        }
+                    });
+                } else {
+                    $('#searchResults').addClass('d-none');
+                    $('#userSearchResults').html('');
+                    alert('Please enter an email to search.');
+                }
+            }
+
+            // Handle clicking on a user in the search results
+            $(document).on('click', '.user-result', function(e) {
+                e.preventDefault();
+                var userId = $(this).data('id');
+                var userName = $(this).data('name');
+
+                $('#presidentId').val(userId);
+                $('#presidentName').val(userName);
+
+                // Hide the search results
+                $('#searchResults').addClass('d-none');
+            });
+        });
+    </script>
+
+    <style>
+        .avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-text {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .user-result:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+}

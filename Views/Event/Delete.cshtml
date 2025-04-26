@@ -1,0 +1,59 @@
+@model SCIS.ViewModels.EventViewModel
+
+@{
+    ViewData["Title"] = "Delete Event";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Delete Event</h1>
+    <a asp-action="Index" class="d-none d-sm-inline-block btn btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50 me-2"></i>Back to List
+    </a>
+</div>
+
+<div class="card shadow mb-4 border-left-danger">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-danger">Warning</h6>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Are you sure you want to delete this event?</strong> This action cannot be undone.
+            <br>
+            <small>All registrations associated with this event will also be deleted.</small>
+        </div>
+        
+        <div class="mb-4">
+            <h5 class="font-weight-bold">Event Details</h5>
+            <dl class="row">
+                <dt class="col-sm-3">Name</dt>
+                <dd class="col-sm-9">@Model.Name</dd>
+                
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@Model.Description</dd>
+                
+                <dt class="col-sm-3">Club</dt>
+                <dd class="col-sm-9">@Model.ClubName</dd>
+                
+                <dt class="col-sm-3">Event Date</dt>
+                <dd class="col-sm-9">@Model.EventDate.ToString("MMMM dd, yyyy - h:mm tt")</dd>
+                
+                <dt class="col-sm-3">Seat Limit</dt>
+                <dd class="col-sm-9">@Model.SeatLimit</dd>
+                
+                <dt class="col-sm-3">Registered Attendees</dt>
+                <dd class="col-sm-9">@Model.RegisteredCount</dd>
+            </dl>
+        </div>
+        
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="EventId" />
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a asp-action="Index" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i> Delete Event
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

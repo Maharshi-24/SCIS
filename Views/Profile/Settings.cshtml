@@ -1,0 +1,142 @@
+@model SCIS.ViewModels.SettingsViewModel
+
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Account Settings</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">Profile</a></li>
+        <li class="breadcrumb-item active">Settings</li>
+    </ol>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user-edit me-1"></i>
+                    Edit Profile
+                </div>
+                <div class="card-body">
+                    <form asp-action="UpdateProfile" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input asp-for="FullName" class="form-control" />
+                            </div>
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input asp-for="Email" class="form-control" readonly />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                            <div class="form-text">Email cannot be changed.</div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-key me-1"></i>
+                    Change Password
+                </div>
+                <div class="card-body">
+                    <form asp-action="ChangePassword" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                        
+                        <div class="mb-3">
+                            <label for="CurrentPassword" class="form-label">Current Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" id="CurrentPassword" name="CurrentPassword" class="form-control" required />
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="NewPassword" class="form-label">New Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" id="NewPassword" name="NewPassword" class="form-control" required minlength="6" />
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Password must be at least 6 characters long.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="ConfirmPassword" class="form-label">Confirm New Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" required minlength="6" />
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-key me-1"></i> Change Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Toggle password visibility
+            $('#togglePassword').click(function() {
+                var passwordField = $('#NewPassword');
+                var passwordFieldType = passwordField.attr('type');
+                
+                if (passwordFieldType === 'password') {
+                    passwordField.attr('type', 'text');
+                    $(this).find('i').removeClass('fa-eye').addClass('fa-eye-slash');
+                } else {
+                    passwordField.attr('type', 'password');
+                    $(this).find('i').removeClass('fa-eye-slash').addClass('fa-eye');
+                }
+            });
+            
+            // Password confirmation validation
+            $('form').submit(function(e) {
+                var password = $('#NewPassword').val();
+                var confirmPassword = $('#ConfirmPassword').val();
+                
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match!');
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+}

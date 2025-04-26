@@ -1,0 +1,250 @@
+@model IEnumerable<SCIS.ViewModels.EventViewModel>
+
+@{
+    ViewData["Title"] = "Events";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Events</h1>
+    @if (ViewBag.IsAdmin || ViewBag.IsClubPresident)
+    {
+        <a asp-action="Create" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50 me-2"></i>Create New Event
+        </a>
+    }
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <ul class="nav nav-tabs card-header-tabs" id="eventTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="true">
+                    Upcoming Events
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab" aria-controls="past" aria-selected="false">
+                    Past Events
+                </button>
+            </li>
+            @if (ViewBag.IsAdmin || ViewBag.IsClubPresident)
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="my-events-tab" data-bs-toggle="tab" data-bs-target="#my-events" type="button" role="tab" aria-controls="my-events" aria-selected="false">
+                        My Events
+                    </button>
+                </li>
+            }
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="eventTabsContent">
+            <div class="tab-pane fade show active" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+                <div class="row">
+                    @foreach (var item in Model.Where(e => e.EventDate > DateTime.Now).OrderBy(e => e.EventDate))
+                    {
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-primary">@item.Name</h6>
+                                    <div class="dropdown no-arrow">
+                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="dropdownMenuLink">
+                                            <a class="dropdown-item" asp-action="Details" asp-route-id="@item.EventId">
+                                                <i class="fas fa-info-circle fa-sm fa-fw me-2 text-gray-400"></i>Details
+                                            </a>
+                                            @if (ViewBag.IsAdmin || (ViewBag.IsClubPresident && ViewBag.ManagedClubIds.Contains(item.ClubId)))
+                                            {
+                                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.EventId">
+                                                    <i class="fas fa-edit fa-sm fa-fw me-2 text-gray-400"></i>Edit
+                                                </a>
+                                                <div class="dropdown-divider"></div>
+                                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.EventId">
+                                                    <i class="fas fa-trash fa-sm fa-fw me-2 text-danger"></i>Delete
+                                                </a>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">@(item.Description.Length > 100 ? item.Description.Substring(0, 100) + "..." : item.Description)</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <div>
+                                            <span class="badge bg-primary">@item.ClubName</span>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i> @item.EventDate.ToString("MMM dd, yyyy")
+                                        </small>
+                                    </div>
+                                    <div class="progress mt-3" style="height: 5px;">
+                                        @{
+                                            var percentage = item.SeatLimit > 0 ? (item.RegisteredCount * 100) / item.SeatLimit : 0;
+                                        }
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: @percentage%;" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-users me-1"></i> @item.RegisteredCount / @item.SeatLimit seats filled
+                                    </small>
+                                </div>
+                                <div class="card-footer bg-transparent border-top-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        @if (item.IsRegistered)
+                                        {
+                                            <span class="badge bg-success">Registered</span>
+                                        }
+                                        <a asp-action="Details" asp-route-id="@item.EventId" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-info-circle me-1"></i> Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                @if (!Model.Any(e => e.EventDate > DateTime.Now))
+                {
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i> No upcoming events found.
+                    </div>
+                }
+            </div>
+            
+            <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
+                <div class="row">
+                    @foreach (var item in Model.Where(e => e.EventDate <= DateTime.Now).OrderByDescending(e => e.EventDate))
+                    {
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                    <h6 class="m-0 font-weight-bold text-secondary">@item.Name</h6>
+                                    <span class="badge bg-secondary">Past</span>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text">@(item.Description.Length > 100 ? item.Description.Substring(0, 100) + "..." : item.Description)</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <div>
+                                            <span class="badge bg-primary">@item.ClubName</span>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-calendar me-1"></i> @item.EventDate.ToString("MMM dd, yyyy")
+                                        </small>
+                                    </div>
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-users me-1"></i> @item.RegisteredCount attended
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-transparent border-top-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        @if (item.IsRegistered)
+                                        {
+                                            <span class="badge bg-info">Attended</span>
+                                        }
+                                        <a asp-action="Details" asp-route-id="@item.EventId" class="btn btn-sm btn-secondary">
+                                            <i class="fas fa-info-circle me-1"></i> Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                @if (!Model.Any(e => e.EventDate <= DateTime.Now))
+                {
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i> No past events found.
+                    </div>
+                }
+            </div>
+            
+            @if (ViewBag.IsAdmin || ViewBag.IsClubPresident)
+            {
+                <div class="tab-pane fade" id="my-events" role="tabpanel" aria-labelledby="my-events-tab">
+                    <div class="row">
+                        @{
+                            var myEvents = Model.Where(e => ViewBag.ManagedClubIds.Contains(e.ClubId)).OrderByDescending(e => e.EventDate);
+                        }
+                        
+                        @foreach (var item in myEvents)
+                        {
+                            <div class="col-xl-4 col-md-6 mb-4">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                                        <h6 class="m-0 font-weight-bold text-primary">@item.Name</h6>
+                                        <div class="dropdown no-arrow">
+                                            <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                                            </a>
+                                            <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="dropdownMenuLink">
+                                                <a class="dropdown-item" asp-action="Details" asp-route-id="@item.EventId">
+                                                    <i class="fas fa-info-circle fa-sm fa-fw me-2 text-gray-400"></i>Details
+                                                </a>
+                                                <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.EventId">
+                                                    <i class="fas fa-edit fa-sm fa-fw me-2 text-gray-400"></i>Edit
+                                                </a>
+                                                <div class="dropdown-divider"></div>
+                                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.EventId">
+                                                    <i class="fas fa-trash fa-sm fa-fw me-2 text-danger"></i>Delete
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="card-text">@(item.Description.Length > 100 ? item.Description.Substring(0, 100) + "..." : item.Description)</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div>
+                                                <span class="badge bg-primary">@item.ClubName</span>
+                                                @if (item.EventDate <= DateTime.Now)
+                                                {
+                                                    <span class="badge bg-secondary ms-1">Past</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success ms-1">Upcoming</span>
+                                                }
+                                            </div>
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar me-1"></i> @item.EventDate.ToString("MMM dd, yyyy")
+                                            </small>
+                                        </div>
+                                        <div class="progress mt-3" style="height: 5px;">
+                                            @{
+                                                var percentage = item.SeatLimit > 0 ? (item.RegisteredCount * 100) / item.SeatLimit : 0;
+                                            }
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @percentage%;" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-users me-1"></i> @item.RegisteredCount / @item.SeatLimit seats filled
+                                        </small>
+                                    </div>
+                                    <div class="card-footer bg-transparent border-top-0">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a asp-action="Edit" asp-route-id="@item.EventId" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit me-1"></i> Edit
+                                            </a>
+                                            <a asp-action="Details" asp-route-id="@item.EventId" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-info-circle me-1"></i> Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (!myEvents.Any())
+                    {
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-info-circle me-2"></i> You haven't created any events yet.
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

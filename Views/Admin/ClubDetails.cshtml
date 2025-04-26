@@ -1,0 +1,452 @@
+@model SCIS.ViewModels.AdminClubDetailsViewModel
+@using SCIS
+
+@{
+    ViewData["Title"] = "Club Details";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 mb-0 text-gray-800">@Model.Club.Name</h1>
+    <div>
+        <a asp-action="EditClub" asp-route-id="@Model.Club.Id" class="btn btn-primary btn-sm shadow-sm">
+            <i class="fas fa-edit fa-sm me-1"></i>Edit Club
+        </a>
+        <a asp-action="Clubs" class="btn btn-secondary btn-sm shadow-sm">
+            <i class="fas fa-arrow-left fa-sm me-1"></i>Back to Clubs
+        </a>
+    </div>
+</div>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb py-1">
+        <li class="breadcrumb-item"><a asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-action="Clubs">Clubs</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.Club.Name</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <!-- Club Info Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Club Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 text-center">
+                    <div class="avatar mx-auto bg-primary rounded-circle mb-3" style="width: 80px; height: 80px;">
+                        <span class="avatar-text" style="font-size: 2rem;">@(Model.Club.Name.Substring(0, 1).ToUpper())</span>
+                    </div>
+                    <h4 class="h5 mb-1">@Model.Club.Name</h4>
+                    @if (Model.Club.IsActive)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Inactive</span>
+                    }
+                </div>
+
+                <hr>
+
+                <div class="mb-3">
+                    <h6 class="font-weight-bold">Description</h6>
+                    <p>@Model.Club.Description</p>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="font-weight-bold">President</h6>
+                    @if (Model.Club.President != null)
+                    {
+                        <p class="mb-0">
+                            <a asp-action="EditUser" asp-route-id="@Model.Club.PresidentId">
+                                @Model.Club.President.FullName
+                            </a>
+                        </p>
+                        <small class="text-muted">@Model.Club.President.Email</small>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No president assigned</p>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="font-weight-bold">Created By</h6>
+                    @if (Model.Club.CreatedByAdmin != null)
+                    {
+                        <p class="mb-0">@Model.Club.CreatedByAdmin.FullName</p>
+                        <small class="text-muted">@Model.Club.CreatedAt.ToString("MMM dd, yyyy")</small>
+                    }
+                    else
+                    {
+                        <p class="text-muted">System</p>
+                        <small class="text-muted">@Model.Club.CreatedAt.ToString("MMM dd, yyyy")</small>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="font-weight-bold">Statistics</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-0">
+                                <i class="fas fa-users me-1 text-primary"></i>
+                                @Model.Members.Count Members
+                            </p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-0">
+                                <i class="fas fa-calendar-alt me-1 text-success"></i>
+                                @Model.Events.Count Events
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Tab Card -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3">
+                <ul class="nav nav-tabs card-header-tabs" id="clubDetailsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button" role="tab" aria-controls="members" aria-selected="true">
+                            Members <span class="badge bg-primary ms-1">@Model.Members.Count</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab" aria-controls="pending" aria-selected="false">
+                            Pending Requests <span class="badge bg-warning ms-1">@Model.PendingRequests.Count</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button" role="tab" aria-controls="events" aria-selected="false">
+                            Events <span class="badge bg-success ms-1">@Model.Events.Count</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="clubDetailsTabContent">
+                    <!-- Members Tab -->
+                    <div class="tab-pane fade show active" id="members" role="tabpanel" aria-labelledby="members-tab">
+                        @if (Model.Members.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="membersTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Joined</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var member in Model.Members)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar bg-primary rounded-circle me-2" style="width: 30px; height: 30px;">
+                                                            <span class="avatar-text">@(member.User.FullName.Substring(0, 1).ToUpper())</span>
+                                                        </div>
+                                                        <div>@member.User.FullName</div>
+                                                    </div>
+                                                </td>
+                                                <td>@member.User.Email</td>
+                                                <td>
+                                                    @if (member.User.Id == Model.Club.PresidentId)
+                                                    {
+                                                        <span class="badge bg-success">President</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-primary">Member</span>
+                                                    }
+                                                </td>
+                                                <td>@(member.JoinedAt.HasValue ? member.JoinedAt.Value.ToString("MMM dd, yyyy") : "N/A")</td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <a asp-action="EditUser" asp-route-id="@member.User.Id" class="btn btn-primary btn-sm">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                        <button type="button" class="btn btn-danger btn-sm"
+                                                                data-bs-toggle="modal" data-bs-target="#removeMemberModal"
+                                                                data-user-id="@member.User.Id" data-user-name="@member.User.FullName">
+                                                            <i class="fas fa-user-minus"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> This club has no members yet.
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Pending Requests Tab -->
+                    <div class="tab-pane fade" id="pending" role="tabpanel" aria-labelledby="pending-tab">
+                        @if (Model.PendingRequests.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="pendingTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Requested</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var request in Model.PendingRequests)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="avatar bg-warning rounded-circle me-2" style="width: 30px; height: 30px;">
+                                                            <span class="avatar-text">@(request.User.FullName.Substring(0, 1).ToUpper())</span>
+                                                        </div>
+                                                        <div>@request.User.FullName</div>
+                                                    </div>
+                                                </td>
+                                                <td>@request.User.Email</td>
+                                                <td>@request.RequestedAt?.ToString("MMM dd, yyyy")</td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button type="button" class="btn btn-success btn-sm"
+                                                                data-bs-toggle="modal" data-bs-target="#approveMemberModal"
+                                                                data-user-id="@request.User.Id" data-user-name="@request.User.FullName">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm"
+                                                                data-bs-toggle="modal" data-bs-target="#rejectMemberModal"
+                                                                data-user-id="@request.User.Id" data-user-name="@request.User.FullName">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> There are no pending membership requests.
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Events Tab -->
+                    <div class="tab-pane fade" id="events" role="tabpanel" aria-labelledby="events-tab">
+                        @if (Model.Events.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="eventsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Registrations</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var evt in Model.Events)
+                                        {
+                                            <tr>
+                                                <td>@evt.Name</td>
+                                                <td>@evt.EventDate.ToString("MMM dd, yyyy")</td>
+                                                <td>
+                                                    @if (evt.EventDate > DateTime.Now)
+                                                    {
+                                                        <span class="badge bg-primary">Upcoming</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">Past</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @{
+                                                        var registrationCount = !string.IsNullOrEmpty(evt.RegisteredUsers)
+                                                            ? evt.RegisteredUsers.Split(',', StringSplitOptions.RemoveEmptyEntries).Length
+                                                            : 0;
+                                                    }
+                                                    <span>@registrationCount / @evt.MaxAttendees</span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <a asp-controller="Event" asp-action="Details" asp-route-id="@evt.Id" class="btn btn-info btn-sm">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a asp-controller="Event" asp-action="Edit" asp-route-id="@evt.Id" class="btn btn-primary btn-sm">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> This club has no events yet.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Member Modal -->
+<div class="modal fade" id="removeMemberModal" tabindex="-1" aria-labelledby="removeMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removeMemberModalLabel">Remove Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong id="memberNameToRemove"></strong> from this club?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="RemoveMember" method="post">
+                    <input type="hidden" id="memberIdToRemove" name="userId" value="" />
+                    <input type="hidden" name="clubId" value="@Model.Club.ClubId" />
+                    <button type="submit" class="btn btn-danger">Remove Member</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Member Modal -->
+<div class="modal fade" id="approveMemberModal" tabindex="-1" aria-labelledby="approveMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approveMemberModalLabel">Approve Membership</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to approve <strong id="memberNameToApprove"></strong>'s membership request?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="ApproveMembership" method="post">
+                    <input type="hidden" id="memberIdToApprove" name="userId" value="" />
+                    <input type="hidden" name="clubId" value="@Model.Club.ClubId" />
+                    <button type="submit" class="btn btn-success">Approve</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Member Modal -->
+<div class="modal fade" id="rejectMemberModal" tabindex="-1" aria-labelledby="rejectMemberModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectMemberModalLabel">Reject Membership</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to reject <strong id="memberNameToReject"></strong>'s membership request?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="RejectMembership" method="post">
+                    <input type="hidden" id="memberIdToReject" name="userId" value="" />
+                    <input type="hidden" name="clubId" value="@Model.Club.ClubId" />
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTables
+            $('#membersTable').DataTable({
+                "order": [[3, "desc"]]
+            });
+
+            $('#pendingTable').DataTable({
+                "order": [[2, "desc"]]
+            });
+
+            $('#eventsTable').DataTable({
+                "order": [[1, "desc"]]
+            });
+
+            // Handle remove member modal
+            $('#removeMemberModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var userId = button.data('user-id');
+                var userName = button.data('user-name');
+
+                $('#memberIdToRemove').val(userId);
+                $('#memberNameToRemove').text(userName);
+            });
+
+            // Handle approve member modal
+            $('#approveMemberModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var userId = button.data('user-id');
+                var userName = button.data('user-name');
+
+                $('#memberIdToApprove').val(userId);
+                $('#memberNameToApprove').text(userName);
+            });
+
+            // Handle reject member modal
+            $('#rejectMemberModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var userId = button.data('user-id');
+                var userName = button.data('user-name');
+
+                $('#memberIdToReject').val(userId);
+                $('#memberNameToReject').text(userName);
+            });
+        });
+    </script>
+
+    <style>
+        .avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-text {
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+}

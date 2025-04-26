@@ -1,0 +1,121 @@
+@model SCIS.ViewModels.CreateUserViewModel
+
+@{
+    ViewData["Title"] = "Create User";
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Create New User</h1>
+    <a asp-action="Users" class="d-none d-sm-inline-block btn btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left fa-sm text-white-50 me-2"></i>Back to Users
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">User Information</h6>
+    </div>
+    <div class="card-body">
+        <form asp-action="CreateUser" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="ConfirmPassword" class="form-label"></label>
+                        <input asp-for="ConfirmPassword" class="form-control" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="UserType" class="form-label"></label>
+                        <select asp-for="UserType" asp-items="Model.AvailableUserTypes" class="form-select" id="userTypeSelect">
+                            <option value="">-- Select User Type --</option>
+                        </select>
+                        <span asp-validation-for="UserType" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="UserRole" class="form-label"></label>
+                        <select asp-for="UserRole" asp-items="Model.AvailableUserRoles" class="form-select" id="userRoleSelect">
+                            <option value="">-- Select User Role --</option>
+                        </select>
+                        <span asp-validation-for="UserRole" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a asp-action="Users" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function() {
+            // Handle user type change to update roles dropdown
+            $('#userTypeSelect').change(function() {
+                var userType = $(this).val();
+                if (userType) {
+                    // Make AJAX call to get roles for selected user type
+                    $.ajax({
+                        url: '/Admin/GetRolesForUserType',
+                        type: 'GET',
+                        data: { userType: userType },
+                        success: function(data) {
+                            // Clear and populate roles dropdown
+                            var roleSelect = $('#userRoleSelect');
+                            roleSelect.empty();
+                            roleSelect.append('<option value="">-- Select User Role --</option>');
+                            
+                            $.each(data, function(index, item) {
+                                roleSelect.append('<option value="' + item.value + '">' + item.text + '</option>');
+                            });
+                        }
+                    });
+                } else {
+                    // Clear roles dropdown if no user type selected
+                    var roleSelect = $('#userRoleSelect');
+                    roleSelect.empty();
+                    roleSelect.append('<option value="">-- Select User Role --</option>');
+                }
+            });
+        });
+    </script>
+}

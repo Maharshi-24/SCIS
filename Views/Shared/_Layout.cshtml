@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Student Club Information System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @if (User.Identity.IsAuthenticated && !Context.Request.Path.Value.Contains("/Account/Login") && !Context.Request.Path.Value.Contains("/Account/Register"))
+    {
+        <div class="d-flex" id="wrapper">
+            <!-- Sidebar -->
+            <div class="border-end bg-white" id="sidebar-wrapper">
+                <div class="sidebar-heading border-bottom bg-primary text-white d-flex align-items-center" style="height: 56px;">
+                    <div style="width: 20px; text-align: center;" class="me-2">
+                        <i class="fas fa-university"></i>
+                    </div>
+                    <span>SCIS</span>
+                </div>
+                <div class="list-group list-group-flush">
+                    <style>
+                        .sidebar-menu-item {
+                            height: 40px;
+                            display: flex;
+                            align-items: center;
+                            padding: 0.5rem 1.25rem;
+                        }
+                        .sidebar-icon-container {
+                            width: 20px;
+                            text-align: center;
+                            margin-right: 0.5rem;
+                            display: inline-flex;
+                            justify-content: center;
+                        }
+                    </style>
+                    @if (User.IsInRole("SystemAdmin") || User.IsInRole("ContentAdmin"))
+                    {
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/Admin") && !Context.Request.Path.Value.Contains("/Admin/Users") && !Context.Request.Path.Value.Contains("/Admin/Clubs") && !Context.Request.Path.Value.Contains("/Admin/Events") && !Context.Request.Path.Value.Contains("/Admin/Announcements") ? "active" : "")"
+                           asp-controller="Admin" asp-action="Index">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <span>Dashboard</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/Admin/Users") ? "active" : "")"
+                           asp-controller="Admin" asp-action="Users">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <span>Users</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/Admin/Clubs") ? "active" : "")"
+                           asp-controller="Admin" asp-action="Clubs">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <span>Clubs</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/Admin/Events") ? "active" : "")"
+                           asp-controller="Admin" asp-action="Events">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <span>Events</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/Admin/Announcements") ? "active" : "")"
+                           asp-controller="Admin" asp-action="Announcements">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-bullhorn"></i>
+                            </div>
+                            <span>Announcements</span>
+                        </a>
+                    }
+                    else if (User.IsInRole("ClubPresident") || User.IsInRole("ClubSecretary") || User.IsInRole("ClubTreasurer"))
+                    {
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/ClubManager") && !Context.Request.Path.Value.Contains("/ClubManager/Members") && !Context.Request.Path.Value.Contains("/ClubManager/Events") ? "active" : "")"
+                           asp-controller="ClubManager" asp-action="Index">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <span>Dashboard</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/ClubManager/Events") ? "active" : "")"
+                           asp-controller="ClubManager" asp-action="Events">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <span>Events</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/ClubManager/Members") ? "active" : "")"
+                           asp-controller="ClubManager" asp-action="Members">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <span>Members</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value == "/" || Context.Request.Path.Value == "/Home" || Context.Request.Path.Value == "/Home/Index" ? "active" : "")"
+                           asp-controller="Home" asp-action="Index">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                            <span>Dashboard</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/Home/Clubs") ? "active" : "")"
+                           asp-controller="Home" asp-action="Clubs">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <span>Clubs</span>
+                        </a>
+                        <a class="list-group-item list-group-item-action list-group-item-light sidebar-menu-item @(Context.Request.Path.Value.Contains("/Home/Events") ? "active" : "")"
+                           asp-controller="Home" asp-action="Events">
+                            <div class="sidebar-icon-container">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <span>Events</span>
+                        </a>
+                    }
+                </div>
+            </div>
+            <!-- Page content wrapper -->
+            <div id="page-content-wrapper">
+                <!-- Top navigation -->
+                <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom" style="height: 56px;">
+                    <div class="container-fluid">
+                        <div class="ms-2">
+                            <h6 class="mb-0 text-gray-800">@ViewData["Title"]</h6>
+                        </div>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                            <ul class="navbar-nav ms-auto">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle py-1" id="navbarDropdown" href="#" role="button"
+                                       data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fas fa-user-circle me-1"></i> <span class="small">@User.Identity.Name</span>
+                                    </a>
+                                    <div class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
+                                        <a class="dropdown-item py-2 small" asp-controller="Profile" asp-action="Index"><i class="fas fa-user me-2"></i>Profile</a>
+                                        <a class="dropdown-item py-2 small" asp-controller="Profile" asp-action="Settings"><i class="fas fa-cog me-2"></i>Settings</a>
+                                        <div class="dropdown-divider"></div>
+                                        <form asp-controller="Account" asp-action="Logout" method="post">
+                                            <button type="submit" class="dropdown-item py-2 small">
+                                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                            </button>
+                                        </form>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+                <!-- Page content -->
+                <div class="container-fluid p-3">
+                    @RenderBody()
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <main role="main">
+            @RenderBody()
+        </main>
+    }
+
+    @if (!Context.Request.Path.Value.Contains("/Account/"))
+    {
+        <footer class="border-top footer text-muted py-3 bg-light">
+            <div class="container text-center">
+                &copy; @DateTime.Now.Year - Student Club Information System - All Rights Reserved
+            </div>
+        </footer>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

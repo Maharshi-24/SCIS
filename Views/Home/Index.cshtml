@@ -1,0 +1,158 @@
+@model IEnumerable<SCIS.Models.Club>
+
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Student Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Welcome, @ViewBag.FullName (@ViewBag.UserRole)</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-xl-4 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h2 class="display-4">@ViewBag.ClubCount</h2>
+                    <p class="lead">My Clubs</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-action="Clubs">View All Clubs</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h2 class="display-4">@ViewBag.UpcomingEvents.Count</h2>
+                    <p class="lead">Upcoming Events</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-action="Events">View All Events</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <h2 class="display-4">@ViewBag.Announcements.Count</h2>
+                    <p class="lead">Recent Announcements</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View All Announcements</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-calendar me-1"></i>
+                    Upcoming Events
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.UpcomingEvents.Count > 0)
+                    {
+                        <div class="list-group">
+                            @foreach (var evt in ViewBag.UpcomingEvents)
+                            {
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">@evt.Name</h5>
+                                        <small>@evt.EventDate.ToString("MMM dd, yyyy")</small>
+                                    </div>
+                                    <p class="mb-1">@evt.Description</p>
+                                    <small>Seats available: @evt.SeatLimit</small>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            No upcoming events found. Join more clubs to see events!
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-bullhorn me-1"></i>
+                    Recent Announcements
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.Announcements.Count > 0)
+                    {
+                        <div class="list-group">
+                            @foreach (var announcement in ViewBag.Announcements)
+                            {
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">@announcement.Title</h5>
+                                        <small>@announcement.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                    </div>
+                                    <p class="mb-1">@announcement.Content</p>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            No recent announcements found.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-users me-1"></i>
+                    My Clubs
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        <div class="row">
+                            @foreach (var club in Model)
+                            {
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">@club.Name</h5>
+                                            <p class="card-text">@club.Description</p>
+                                        </div>
+                                        <div class="card-footer">
+                                            <a href="#" class="btn btn-primary btn-sm">View Details</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            You are not a member of any clubs yet. <a asp-action="Clubs">Browse clubs</a> to join!
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

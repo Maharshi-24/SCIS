@@ -1,0 +1,126 @@
+@model IEnumerable<SCIS.Models.Club>
+
+@{
+    ViewData["Title"] = "Club Manager Dashboard";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Club Manager Dashboard</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Welcome, @ViewBag.FullName (@ViewBag.UserRole)</li>
+    </ol>
+    
+    <div class="row">
+        <div class="col-xl-4 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h2 class="display-4">@ViewBag.ManagedClubs</h2>
+                    <p class="lead">Managed Clubs</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h2 class="display-4">@ViewBag.TotalMembers</h2>
+                    <p class="lead">Total Members</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <h2 class="display-4">@ViewBag.UpcomingEvents</h2>
+                    <p class="lead">Upcoming Events</p>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">View Details</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-1"></i>
+                    Your Clubs
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var club in Model)
+                            {
+                                <tr>
+                                    <td>@club.Name</td>
+                                    <td>@club.Description</td>
+                                    <td>@club.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a asp-action="Members" asp-route-clubId="@club.ClubId" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-users"></i> Members
+                                            </a>
+                                            <a asp-action="Events" asp-route-clubId="@club.ClubId" class="btn btn-sm btn-info">
+                                                <i class="fas fa-calendar"></i> Events
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-area me-1"></i>
+                    Quick Actions
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <a href="#" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-user-plus"></i> Add New Member
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="#" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-calendar-plus"></i> Create Event
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="#" class="btn btn-info btn-lg w-100">
+                                <i class="fas fa-bullhorn"></i> Post Announcement
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

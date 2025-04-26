@@ -1,0 +1,227 @@
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<h1 class="h3 mb-3 text-gray-800">Dashboard Overview</h1>
+
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card card-stats primary shadow h-100 py-1">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="card-title text-uppercase mb-1">Total Users</div>
+                        <div class="card-value">@ViewBag.TotalUsers</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer py-1">
+                <a class="stretched-link text-primary small" asp-action="Users">
+                    View Details <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card card-stats success shadow h-100 py-1">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="card-title text-uppercase mb-1">Total Clubs</div>
+                        <div class="card-value">@ViewBag.TotalClubs</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-building fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer py-1">
+                <a class="stretched-link text-success small" asp-action="Clubs">
+                    View Details <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card card-stats info shadow h-100 py-1">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="card-title text-uppercase mb-1">Total Events</div>
+                        <div class="card-value">@ViewBag.TotalEvents</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer py-1">
+                <a class="stretched-link text-info small" asp-action="Events">
+                    View Details <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card card-stats warning shadow h-100 py-1">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="card-title text-uppercase mb-1">Pending Approvals</div>
+                        <div class="card-value">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer py-1">
+                <a class="stretched-link text-warning small" href="#">
+                    View Details <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-3">
+            <div class="card-header py-2 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Activities</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="dropdownMenuLink">
+                        <div class="dropdown-header">Actions:</div>
+                        <a class="dropdown-item" href="#">View All</a>
+                        <a class="dropdown-item" href="#">Export</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#">Settings</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    @if (ViewBag.RecentUsers.Count > 0 || ViewBag.RecentClubs.Count > 0 || ViewBag.RecentEvents.Count > 0)
+                    {
+                        @foreach (var user in ViewBag.RecentUsers)
+                        {
+                            <div class="list-group-item list-group-item-action py-2">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">New user registered</h6>
+                                    <small class="text-muted">@((DateTime.Now - user.CreatedAt).TotalDays < 1 ?
+                                        $"{(int)(DateTime.Now - user.CreatedAt).TotalHours} hours ago" :
+                                        user.CreatedAt.ToString("MMM dd, yyyy"))</small>
+                                </div>
+                                <p class="mb-1 small">@user.FullName has registered a new account.</p>
+                                <small class="text-muted">Email: @user.Email</small>
+                            </div>
+                        }
+
+                        @foreach (var club in ViewBag.RecentClubs)
+                        {
+                            <div class="list-group-item list-group-item-action py-2">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">New club created</h6>
+                                    <small class="text-muted">@((DateTime.Now - club.CreatedAt).TotalDays < 1 ?
+                                        $"{(int)(DateTime.Now - club.CreatedAt).TotalHours} hours ago" :
+                                        club.CreatedAt.ToString("MMM dd, yyyy"))</small>
+                                </div>
+                                <p class="mb-1 small">@club.Name has been created.</p>
+                                <small class="text-muted">Club ID: #@club.ClubId</small>
+                            </div>
+                        }
+
+                        @foreach (var evt in ViewBag.RecentEvents)
+                        {
+                            <div class="list-group-item list-group-item-action py-2">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Event scheduled</h6>
+                                    <small class="text-muted">@evt.EventDate.ToString("MMM dd, yyyy")</small>
+                                </div>
+                                <p class="mb-1 small">@evt.Name has been scheduled.</p>
+                                <small class="text-muted">Event ID: #@evt.EventId</small>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="list-group-item py-3 text-center">
+                            <p class="mb-0 text-muted">No recent activities to display.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow mb-3">
+            <div class="card-header py-2">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body py-2">
+                <div class="d-grid gap-2">
+                    <a asp-action="CreateUser" class="btn btn-sm btn-primary btn-icon-split">
+                        <span class="icon text-white-50">
+                            <i class="fas fa-user-plus"></i>
+                        </span>
+                        <span class="text">Add New User</span>
+                    </a>
+                    <a asp-action="CreateClub" class="btn btn-sm btn-success btn-icon-split">
+                        <span class="icon text-white-50">
+                            <i class="fas fa-building"></i>
+                        </span>
+                        <span class="text">Create New Club</span>
+                    </a>
+                    <a asp-controller="Event" asp-action="Create" class="btn btn-sm btn-info btn-icon-split">
+                        <span class="icon text-white-50">
+                            <i class="fas fa-calendar-plus"></i>
+                        </span>
+                        <span class="text">Schedule Event</span>
+                    </a>
+                    <a asp-action="CreateAnnouncement" class="btn btn-sm btn-warning btn-icon-split">
+                        <span class="icon text-white-50">
+                            <i class="fas fa-bullhorn"></i>
+                        </span>
+                        <span class="text">Post Announcement</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-3">
+            <div class="card-header py-2">
+                <h6 class="m-0 font-weight-bold text-primary">System Status</h6>
+            </div>
+            <div class="card-body py-2">
+                <div class="mb-2">
+                    <h6 class="small font-weight-bold">Database <span class="float-end">Healthy</span></h6>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <h6 class="small font-weight-bold">Storage <span class="float-end">75%</span></h6>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+                <div>
+                    <h6 class="small font-weight-bold">Memory <span class="float-end">50%</span></h6>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: 50%" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

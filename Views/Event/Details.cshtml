@@ -1,0 +1,267 @@
+@model SCIS.ViewModels.EventViewModel
+
+@{
+    ViewData["Title"] = "Event Details";
+}
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i> @TempData["Message"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">@Model.Name</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50 me-2"></i>Back to List
+        </a>
+        @if ((ViewBag.IsAdmin || ViewBag.IsClubPresident) && !ViewBag.IsPast)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.EventId" class="btn btn-primary shadow-sm">
+                <i class="fas fa-edit fa-sm text-white-50 me-2"></i>Edit
+            </a>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Event Information</h6>
+                <div>
+                    @if (ViewBag.IsPast)
+                    {
+                        <span class="badge bg-secondary">Past Event</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success">Upcoming Event</span>
+                        @if (ViewBag.IsMember && !ViewBag.IsRegistered && ViewBag.HasAvailableSeats)
+                        {
+                            <a asp-action="Register" asp-route-id="@Model.EventId" class="btn btn-sm btn-success ms-2">
+                                <i class="fas fa-user-plus me-1"></i> Register
+                            </a>
+                        }
+                        else if (ViewBag.IsRegistered)
+                        {
+                            <a asp-action="Unregister" asp-route-id="@Model.EventId" class="btn btn-sm btn-danger ms-2"
+                               onclick="return confirm('Are you sure you want to unregister from this event?');">
+                                <i class="fas fa-user-minus me-1"></i> Unregister
+                            </a>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5 class="font-weight-bold">Description</h5>
+                    <p>@Model.Description</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h5 class="font-weight-bold">Club</h5>
+                            <p>
+                                <i class="fas fa-building me-2"></i>
+                                <a asp-controller="Club" asp-action="Details" asp-route-id="@Model.ClubId">@Model.ClubName</a>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h5 class="font-weight-bold">Event Date</h5>
+                            <p><i class="fas fa-calendar me-2"></i>@Model.EventDate.ToString("MMMM dd, yyyy - h:mm tt")</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h5 class="font-weight-bold">Seat Limit</h5>
+                            <p><i class="fas fa-chair me-2"></i>@Model.SeatLimit seats</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <h5 class="font-weight-bold">Registered Attendees</h5>
+                            <p><i class="fas fa-users me-2"></i>@Model.RegisteredCount / @Model.SeatLimit</p>
+                            <div class="progress" style="height: 5px;">
+                                @{
+                                    var percentage = Model.SeatLimit > 0 ? (Model.RegisteredCount * 100) / Model.SeatLimit : 0;
+                                }
+                                <div class="progress-bar bg-success" role="progressbar" style="width: @percentage%;" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (ViewBag.IsRegistered)
+                {
+                    <div class="alert alert-success mt-3">
+                        <i class="fas fa-check-circle me-2"></i> You are registered for this event.
+                        @if (!ViewBag.IsPast)
+                        {
+                            <a asp-action="Unregister" asp-route-id="@Model.EventId" class="btn btn-sm btn-danger float-end"
+                               onclick="return confirm('Are you sure you want to unregister from this event?');">
+                                <i class="fas fa-user-minus me-1"></i> Unregister
+                            </a>
+                        }
+                    </div>
+                }
+                else if (ViewBag.IsMember && !ViewBag.IsPast)
+                {
+                    if (ViewBag.HasAvailableSeats)
+                    {
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i> You are not registered for this event.
+                            <a asp-action="Register" asp-route-id="@Model.EventId" class="btn btn-sm btn-success float-end">
+                                <i class="fas fa-user-plus me-1"></i> Register
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-circle me-2"></i> This event is full.
+                        </div>
+                    }
+                }
+                else if (!ViewBag.IsMember)
+                {
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-circle me-2"></i> You must be a member of the club to register for this event.
+                        <a asp-controller="Club" asp-action="Join" asp-route-id="@Model.ClubId" class="btn btn-sm btn-primary float-end">
+                            <i class="fas fa-user-plus me-1"></i> Join Club
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (ViewBag.IsPast && (ViewBag.IsAdmin || ViewBag.IsClubPresident))
+        {
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Select Winners</h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="SelectWinners" method="post">
+                        <input type="hidden" name="id" value="@Model.EventId" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Select Winners</label>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> Select attendees who won prizes or recognition at this event.
+                            </div>
+
+                            @if (ViewBag.RegisteredUsers != null && ViewBag.RegisteredUsers.Count > 0)
+                            {
+                                <div class="list-group">
+                                    @foreach (var user in ViewBag.RegisteredUsers)
+                                    {
+                                        <div class="list-group-item">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="selectedWinners" value="@user.Id" id="winner-@user.Id"
+                                                       @(((List<ApplicationUser>)ViewBag.Winners).Any(w => w.Id == user.Id) ? "checked" : "")>
+                                                <label class="form-check-label" for="winner-@user.Id">
+                                                    @user.FullName (@user.Email)
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-trophy me-1"></i> Save Winners
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-circle me-2"></i> No registered attendees found.
+                                </div>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Registered Attendees</h6>
+            </div>
+            <div class="card-body">
+                @if (ViewBag.RegisteredUsers != null && ViewBag.RegisteredUsers.Count > 0)
+                {
+                    <div class="list-group">
+                        @foreach (var user in ViewBag.RegisteredUsers)
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@user.FullName</h6>
+                                    @if (((List<ApplicationUser>)ViewBag.Winners).Any(w => w.Id == user.Id))
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-trophy me-1"></i> Winner
+                                        </span>
+                                    }
+                                </div>
+                                <small class="text-muted">@user.Email</small>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No registered attendees yet.
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (ViewBag.IsPast && ViewBag.Winners.Count > 0)
+        {
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-warning text-dark">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-trophy me-1"></i> Event Winners
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        @foreach (var winner in ViewBag.Winners)
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@winner.FullName</h6>
+                                    <i class="fas fa-trophy text-warning"></i>
+                                </div>
+                                <small class="text-muted">@winner.Email</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

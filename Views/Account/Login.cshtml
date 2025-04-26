@@ -1,0 +1,76 @@
+
+@model SCIS.ViewModels.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+    Layout = "_AuthLayout";
+}
+
+<div class="container">
+    <div class="row justify-content-center align-items-center vh-100">
+        <div class="col-lg-5 col-md-7 col-sm-9">
+            <div class="text-center mb-2">
+                <h2 class="fw-bold text-primary mb-0">SCIS</h2>
+                <p class="small text-muted mb-0">Student Club Information System</p>
+            </div>
+
+            <div class="auth-card">
+                <div class="card-header py-3">
+                    <h2 class="h5 mb-0">Welcome Back</h2>
+                    <p class="small mb-0">Sign in to your account</p>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Login" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2" role="alert"></div>
+
+                        <div class="input-group-icon">
+                            <label for="Email">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input asp-for="Email" class="form-control" placeholder="Enter your email" autocomplete="username" />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="input-group-icon">
+                            <label for="Password">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input asp-for="Password" class="form-control" type="password" placeholder="Enter your password" autocomplete="current-password" />
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-check mb-3 mt-2">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label small">Remember me</label>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-1"></i>Sign In
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <a href="/Account/Register" class="text-decoration-none small">
+                        <i class="fas fa-user-plus me-1"></i> Need an account? Sign up!
+                    </a>
+                </div>
+            </div>
+
+            <div class="text-center mt-2">
+                <p class="small text-muted mb-0">&copy; @DateTime.Now.Year - SCIS</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

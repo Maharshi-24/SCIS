@@ -1,0 +1,106 @@
+
+@model SCIS.ViewModels.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_AuthLayout";
+}
+
+<div class="container">
+    <div class="row justify-content-center align-items-center vh-100">
+        <div class="col-lg-5 col-md-7 col-sm-9">
+            <div class="text-center mb-2">
+                <h2 class="fw-bold text-primary mb-0">SCIS</h2>
+                <p class="small text-muted mb-0">Student Club Information System</p>
+            </div>
+
+            <div class="auth-card">
+                <div class="card-header py-3">
+                    <h2 class="h5 mb-0">Create Account</h2>
+                    <p class="small mb-0">Join our community today</p>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Register" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2" role="alert"></div>
+
+                        <div class="input-group-icon">
+                            <label for="FullName">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input asp-for="FullName" class="form-control" placeholder="Enter your full name" />
+                            </div>
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="input-group-icon">
+                            <label for="Email">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input asp-for="Email" class="form-control" placeholder="Enter your email" autocomplete="username" />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="input-group-icon">
+                                    <label for="Password">Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-lock"></i>
+                                        </span>
+                                        <input asp-for="Password" class="form-control" type="password" placeholder="Create password" autocomplete="new-password" />
+                                    </div>
+                                    <span asp-validation-for="Password" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group-icon">
+                                    <label for="ConfirmPassword">Confirm Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="fas fa-check-circle"></i>
+                                        </span>
+                                        <input asp-for="ConfirmPassword" class="form-control" type="password" placeholder="Confirm password" autocomplete="new-password" />
+                                    </div>
+                                    <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Type and Role will be assigned by admin -->
+                        <input type="hidden" asp-for="UserType" value="User" />
+                        <input type="hidden" asp-for="UserRole" value="Student" />
+
+                        <div class="alert alert-info small py-2 mt-2" role="alert">
+                            <i class="fas fa-info-circle me-1"></i> Your account will be reviewed by an administrator.
+                        </div>
+
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-1"></i>Create Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="Login" class="text-decoration-none small">
+                        <i class="fas fa-sign-in-alt me-1"></i> Already have an account? Sign in
+                    </a>
+                </div>
+            </div>
+
+            <div class="text-center mt-2">
+                <p class="small text-muted mb-0">&copy; @DateTime.Now.Year - SCIS</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
