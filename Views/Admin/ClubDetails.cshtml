@@ -335,7 +335,9 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form asp-action="RemoveMember" method="post">
                     <input type="hidden" id="memberIdToRemove" name="userId" value="" />
+                    <input type="hidden" id="memberNameToRemoveInput" name="userName" value="" />
                     <input type="hidden" name="clubId" value="@Model.Club.ClubId" />
+                    <input type="hidden" name="clubName" value="@Model.Club.Name" />
                     <button type="submit" class="btn btn-danger">Remove Member</button>
                 </form>
             </div>
@@ -413,19 +415,30 @@
 
                 console.log('Remove member modal opened for user ID: ' + userId + ', name: ' + userName);
 
+                // Set both the ID and name in the form
                 $('#memberIdToRemove').val(userId);
+                $('#memberNameToRemoveInput').val(userName);
                 $('#memberNameToRemove').text(userName);
             });
 
             // Add form validation for remove member
             $('form[asp-action="RemoveMember"]').on('submit', function(e) {
                 var userId = $('#memberIdToRemove').val();
+                var userName = $('#memberNameToRemoveInput').val();
                 var clubId = $(this).find('input[name="clubId"]').val();
+                var clubName = $(this).find('input[name="clubName"]').val();
 
                 if (!userId || userId === '') {
                     e.preventDefault();
                     alert('Error: User ID is missing. Please try again.');
                     console.error('Form submission prevented: User ID is missing');
+                    return false;
+                }
+
+                if (!userName || userName === '') {
+                    e.preventDefault();
+                    alert('Error: User name is missing. Please try again.');
+                    console.error('Form submission prevented: User name is missing');
                     return false;
                 }
 
@@ -436,7 +449,14 @@
                     return false;
                 }
 
-                console.log('Submitting remove member form for user ID: ' + userId + ', club ID: ' + clubId);
+                if (!clubName || clubName === '') {
+                    e.preventDefault();
+                    alert('Error: Club name is missing. Please try again.');
+                    console.error('Form submission prevented: Club name is missing');
+                    return false;
+                }
+
+                console.log('Submitting remove member form for user: ' + userName + ' (ID: ' + userId + '), club: ' + clubName + ' (ID: ' + clubId + ')');
             });
 
             // Handle approve member modal

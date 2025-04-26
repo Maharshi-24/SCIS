@@ -143,6 +143,7 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form id="deleteUserForm" asp-action="DeleteUser" method="post">
                     <input type="hidden" id="deleteUserId" name="id" />
+                    <input type="hidden" id="deleteUserNameInput" name="userName" />
                     <button type="submit" class="btn btn-danger">Delete User</button>
                 </form>
             </div>
@@ -165,21 +166,32 @@
 
                 console.log('Delete user modal opened for user ID: ' + userId + ', name: ' + userName);
 
-                // Set the user ID in the hidden input field
+                // Set both the ID and name in the form
                 $('#deleteUserId').val(userId);
+                $('#deleteUserNameInput').val(userName);
                 $('#deleteUserName').text(userName);
             });
 
-            // Add form submission handler to ensure the ID is included
+            // Add form submission handler to ensure the ID and name are included
             $('#deleteUserForm').on('submit', function(e) {
                 var userId = $('#deleteUserId').val();
+                var userName = $('#deleteUserNameInput').val();
+
                 if (!userId) {
                     e.preventDefault();
                     alert('Error: User ID is missing. Please try again.');
                     console.error('Form submission prevented: User ID is missing');
-                } else {
-                    console.log('Submitting delete form for user ID: ' + userId);
+                    return false;
                 }
+
+                if (!userName) {
+                    e.preventDefault();
+                    alert('Error: User name is missing. Please try again.');
+                    console.error('Form submission prevented: User name is missing');
+                    return false;
+                }
+
+                console.log('Submitting delete form for user: ' + userName + ' (ID: ' + userId + ')');
             });
         });
     </script>

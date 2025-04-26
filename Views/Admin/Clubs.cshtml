@@ -107,6 +107,7 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <form id="deleteClubForm" asp-action="DeleteClub" method="post">
                     <input type="hidden" id="clubIdToDelete" name="id" value="" />
+                    <input type="hidden" id="clubNameToDeleteInput" name="clubName" value="" />
                     <button type="submit" class="btn btn-danger">Delete Club</button>
                 </form>
             </div>
@@ -129,21 +130,32 @@
 
                 console.log('Delete club modal opened for club ID: ' + clubId + ', name: ' + clubName);
 
-                // Set the club ID in the hidden input field
+                // Set the club ID and name in the hidden input fields
                 $('#clubIdToDelete').val(clubId);
+                $('#clubNameToDeleteInput').val(clubName);
                 $('#clubNameToDelete').text(clubName);
             });
 
-            // Add form submission handler to ensure the ID is included
+            // Add form submission handler to ensure the ID and name are included
             $('#deleteClubForm').on('submit', function(e) {
                 var clubId = $('#clubIdToDelete').val();
+                var clubName = $('#clubNameToDeleteInput').val();
+
                 if (!clubId || clubId === '0' || clubId === '') {
                     e.preventDefault();
                     alert('Error: Club ID is missing. Please try again.');
                     console.error('Form submission prevented: Club ID is missing or invalid');
-                } else {
-                    console.log('Submitting delete form for club ID: ' + clubId);
+                    return false;
                 }
+
+                if (!clubName || clubName === '') {
+                    e.preventDefault();
+                    alert('Error: Club name is missing. Please try again.');
+                    console.error('Form submission prevented: Club name is missing');
+                    return false;
+                }
+
+                console.log('Submitting delete form for club ID: ' + clubId + ', name: ' + clubName);
             });
         });
     </script>

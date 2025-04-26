@@ -85,12 +85,12 @@ namespace SCIS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteUser(string id)
+        public async Task<IActionResult> DeleteUser(string id, string userName)
         {
             try
             {
                 // Log the raw form data for debugging
-                Console.WriteLine($"DeleteUser form data - id: '{id}'");
+                Console.WriteLine($"DeleteUser form data - id: '{id}', userName: '{userName}'");
 
                 // Check if the form data is being properly submitted
                 var form = await Request.ReadFormAsync();
@@ -99,21 +99,43 @@ namespace SCIS.Controllers
                     Console.WriteLine($"Form key: {key}, Value: {form[key]}");
                 }
 
-                // Try to get the ID from the form if it's not in the parameter
+                // Try to get values from the form if they're not in the parameters
                 if (string.IsNullOrEmpty(id) && form.ContainsKey("id"))
                 {
                     id = form["id"].ToString();
                     Console.WriteLine($"Retrieved ID from form: {id}");
                 }
 
-                if (string.IsNullOrEmpty(id))
+                if (string.IsNullOrEmpty(userName) && form.ContainsKey("userName"))
                 {
-                    TempData["ErrorMessage"] = "User ID is required.";
+                    userName = form["userName"].ToString();
+                    Console.WriteLine($"Retrieved userName from form: {userName}");
+                }
+
+                // Validate parameters
+                if (string.IsNullOrEmpty(id) && string.IsNullOrEmpty(userName))
+                {
+                    TempData["ErrorMessage"] = "User information is required.";
                     return RedirectToAction(nameof(Users));
                 }
 
+                // Find the user by ID or name
                 var user = await _userManager.FindByIdAsync(id);
-                if (user == null)
+                if (user == null && !string.IsNullOrEmpty(userName))
+                {
+                    // Try to find by name
+                    user = await _userManager.Users.FirstOrDefaultAsync(u => u.FullName == userName);
+
+                    if (user == null)
+                    {
+                        TempData["ErrorMessage"] = $"User '{userName}' not found.";
+                        return RedirectToAction(nameof(Users));
+                    }
+
+                    // Update id with the found user's ID
+                    id = user.Id;
+                }
+                else if (user == null)
                 {
                     TempData["ErrorMessage"] = $"User with ID {id} not found.";
                     return RedirectToAction(nameof(Users));
@@ -210,7 +232,7 @@ namespace SCIS.Controllers
                         {
                             // Commit the transaction
                             await transaction.CommitAsync();
-                            TempData["SuccessMessage"] = $"User {user.FullName} has been deleted successfully.";
+                            TempData["SuccessMessage"] = $"User '{user.FullName}' has been deleted successfully.";
                         }
                         else
                         {
@@ -579,12 +601,12 @@ namespace SCIS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RemoveMember(string userId, int clubId)
+        public async Task<IActionResult> RemoveMember(string userId, int clubId, string userName, string clubName)
         {
             try
             {
                 // Log the raw form data for debugging
-                Console.WriteLine($"RemoveMember form data - userId: '{userId}', clubId: '{clubId}'");
+                Console.WriteLine($"RemoveMember form data - userId: '{userId}', clubId: '{clubId}', userName: '{userName}', clubName: '{clubName}'");
 
                 // Check if the form data is being properly submitted
                 var form = await Request.ReadFormAsync();
@@ -593,17 +615,76 @@ namespace SCIS.Controllers
                     Console.WriteLine($"Form key: {key}, Value: {form[key]}");
                 }
 
-                // Validate parameters
-                if (string.IsNullOrEmpty(userId))
+                // Try to get values from the form if they're not in the parameters
+                if (string.IsNullOrEmpty(userId) && form.ContainsKey("userId"))
                 {
-                    TempData["ErrorMessage"] = "User ID is required";
+                    userId = form["userId"].ToString();
+                    Console.WriteLine($"Retrieved userId from form: {userId}");
+                }
+
+                if (string.IsNullOrEmpty(userName) && form.ContainsKey("userName"))
+                {
+                    userName = form["userName"].ToString();
+                    Console.WriteLine($"Retrieved userName from form: {userName}");
+                }
+
+                if (clubId <= 0 && form.ContainsKey("clubId") && int.TryParse(form["clubId"], out int formClubId))
+                {
+                    clubId = formClubId;
+                    Console.WriteLine($"Retrieved clubId from form: {clubId}");
+                }
+
+                if (string.IsNullOrEmpty(clubName) && form.ContainsKey("clubName"))
+                {
+                    clubName = form["clubName"].ToString();
+                    Console.WriteLine($"Retrieved clubName from form: {clubName}");
+                }
+
+                // Validate parameters
+                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(userName))
+                {
+                    TempData["ErrorMessage"] = "User information is required";
                     return RedirectToAction(nameof(Clubs));
                 }
 
-                if (clubId <= 0)
+                if (clubId <= 0 || string.IsNullOrEmpty(clubName))
                 {
-                    TempData["ErrorMessage"] = "Invalid club ID";
+                    TempData["ErrorMessage"] = "Club information is required";
                     return RedirectToAction(nameof(Clubs));
+                }
+
+                // Find the user by ID or name
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    // Try to find by name
+                    user = await _userManager.Users.FirstOrDefaultAsync(u => u.FullName == userName);
+
+                    if (user == null)
+                    {
+                        TempData["ErrorMessage"] = $"User '{userName}' not found";
+                        return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+                    }
+
+                    // Update userId with the found user's ID
+                    userId = user.Id;
+                }
+
+                // Find the club by ID or name
+                var club = await _context.Clubs.FindAsync(clubId);
+                if (club == null)
+                {
+                    // Try to find by name
+                    club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == clubName);
+
+                    if (club == null)
+                    {
+                        TempData["ErrorMessage"] = $"Club '{clubName}' not found";
+                        return RedirectToAction(nameof(Clubs));
+                    }
+
+                    // Update clubId with the found club's ID
+                    clubId = club.ClubId;
                 }
 
                 // Find the membership using a direct query
@@ -620,14 +701,20 @@ namespace SCIS.Controllers
 
                     if (membership == null)
                     {
-                        TempData["ErrorMessage"] = $"Membership not found for user {userId} in club {clubId}";
-                        return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+                        // Try one more approach - get all memberships and filter manually
+                        var allMemberships = await _context.Memberships.ToListAsync();
+                        membership = allMemberships.FirstOrDefault(m => m.UserId == userId && m.ClubId == clubId);
+
+                        if (membership == null)
+                        {
+                            TempData["ErrorMessage"] = $"Membership not found for user '{userName}' in club '{clubName}'";
+                            return RedirectToAction(nameof(ClubDetails), new { id = clubId });
+                        }
                     }
                 }
 
                 // Check if user is the president
-                var club = await _context.Clubs.FindAsync(clubId);
-                if (club != null && club.PresidentId == userId)
+                if (club.PresidentId == userId)
                 {
                     TempData["ErrorMessage"] = "Cannot remove the club president. Please assign a new president first.";
                     return RedirectToAction(nameof(ClubDetails), new { id = clubId });
@@ -645,11 +732,7 @@ namespace SCIS.Controllers
                         // Commit the transaction
                         await transaction.CommitAsync();
 
-                        // Get user name for the success message
-                        var user = await _userManager.FindByIdAsync(userId);
-                        string userName = user?.FullName ?? "Member";
-
-                        TempData["SuccessMessage"] = $"{userName} has been removed from the club successfully";
+                        TempData["SuccessMessage"] = $"{userName} has been removed from the club '{clubName}' successfully";
                     }
                     catch (Exception ex)
                     {
@@ -1090,12 +1173,12 @@ namespace SCIS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteClub(int id)
+        public async Task<IActionResult> DeleteClub(int id, string clubName)
         {
             try
             {
                 // Log the raw form data for debugging
-                Console.WriteLine($"DeleteClub form data - id: '{id}'");
+                Console.WriteLine($"DeleteClub form data - id: '{id}', clubName: '{clubName}'");
 
                 // Check if the form data is being properly submitted
                 var form = await Request.ReadFormAsync();
@@ -1104,25 +1187,38 @@ namespace SCIS.Controllers
                     Console.WriteLine($"Form key: {key}, Value: {form[key]}");
                 }
 
-                // Validate the club ID
-                if (id <= 0)
+                // Try to get the club name from the form if it's not in the parameter
+                if (string.IsNullOrEmpty(clubName) && form.ContainsKey("clubName"))
                 {
-                    TempData["ErrorMessage"] = "Invalid club ID. Please try again.";
+                    clubName = form["clubName"].ToString();
+                    Console.WriteLine($"Retrieved club name from form: {clubName}");
+                }
+
+                // Validate the club name
+                if (string.IsNullOrEmpty(clubName))
+                {
+                    TempData["ErrorMessage"] = "Club name is required. Please try again.";
                     return RedirectToAction(nameof(Clubs));
                 }
 
-                // Find the club by ID
-                var club = await _context.Clubs.FindAsync(id);
+                // Find the club by name
+                var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == clubName);
 
-                // If not found by FindAsync, try FirstOrDefaultAsync
-                if (club == null)
+                // If not found by name, try by ID
+                if (club == null && id > 0)
                 {
-                    club = await _context.Clubs.FirstOrDefaultAsync(c => c.ClubId == id);
+                    club = await _context.Clubs.FindAsync(id);
+
+                    // If still not found, try with FirstOrDefaultAsync
+                    if (club == null)
+                    {
+                        club = await _context.Clubs.FirstOrDefaultAsync(c => c.ClubId == id);
+                    }
                 }
 
                 if (club == null)
                 {
-                    TempData["ErrorMessage"] = $"Club with ID {id} not found.";
+                    TempData["ErrorMessage"] = $"Club '{clubName}' not found.";
                     return RedirectToAction(nameof(Clubs));
                 }
 
