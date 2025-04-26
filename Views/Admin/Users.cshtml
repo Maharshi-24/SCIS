@@ -163,8 +163,23 @@
                 var userId = button.data('user-id');
                 var userName = button.data('user-name');
 
+                console.log('Delete user modal opened for user ID: ' + userId + ', name: ' + userName);
+
+                // Set the user ID in the hidden input field
                 $('#deleteUserId').val(userId);
                 $('#deleteUserName').text(userName);
+            });
+
+            // Add form submission handler to ensure the ID is included
+            $('#deleteUserForm').on('submit', function(e) {
+                var userId = $('#deleteUserId').val();
+                if (!userId) {
+                    e.preventDefault();
+                    alert('Error: User ID is missing. Please try again.');
+                    console.error('Form submission prevented: User ID is missing');
+                } else {
+                    console.log('Submitting delete form for user ID: ' + userId);
+                }
             });
         });
     </script>

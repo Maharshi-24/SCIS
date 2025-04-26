@@ -76,8 +76,8 @@
                                     <a asp-action="EditClub" asp-route-id="@club.Id" class="btn btn-primary btn-sm" title="Edit Club">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button type="button" class="btn btn-danger btn-sm" title="Delete Club" 
-                                            data-bs-toggle="modal" data-bs-target="#deleteClubModal" 
+                                    <button type="button" class="btn btn-danger btn-sm" title="Delete Club"
+                                            data-bs-toggle="modal" data-bs-target="#deleteClubModal"
                                             data-club-id="@club.Id" data-club-name="@club.Name">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -120,15 +120,30 @@
             $('#clubsTable').DataTable({
                 "order": [[4, "desc"]]
             });
-            
+
             // Handle delete club modal
             $('#deleteClubModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget);
                 var clubId = button.data('club-id');
                 var clubName = button.data('club-name');
-                
+
+                console.log('Delete club modal opened for club ID: ' + clubId + ', name: ' + clubName);
+
+                // Set the club ID in the hidden input field
                 $('#clubIdToDelete').val(clubId);
                 $('#clubNameToDelete').text(clubName);
+            });
+
+            // Add form submission handler to ensure the ID is included
+            $('#deleteClubForm').on('submit', function(e) {
+                var clubId = $('#clubIdToDelete').val();
+                if (!clubId || clubId === '0' || clubId === '') {
+                    e.preventDefault();
+                    alert('Error: Club ID is missing. Please try again.');
+                    console.error('Form submission prevented: Club ID is missing or invalid');
+                } else {
+                    console.log('Submitting delete form for club ID: ' + clubId);
+                }
             });
         });
     </script>

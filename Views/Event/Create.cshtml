@@ -84,4 +84,84 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        $(document).ready(function() {
+            // Display any TempData errors
+            @foreach (var key in TempData.Keys)
+            {
+                if (key.ToString().StartsWith("Error_"))
+                {
+                    <text>
+                    console.log("TempData error: @key = @TempData[key]");
+                    </text>
+                }
+            }
+
+            // Add form submission handler
+            $('form').on('submit', function(e) {
+                // Validate required fields
+                var isValid = true;
+
+                // Check Name
+                if (!$('#Name').val()) {
+                    isValid = false;
+                    $('#Name').addClass('is-invalid');
+                    $('[data-valmsg-for="Name"]').text('Event name is required').show();
+                }
+
+                // Check ClubId
+                if (!$('#ClubId').val()) {
+                    isValid = false;
+                    $('#ClubId').addClass('is-invalid');
+                    $('[data-valmsg-for="ClubId"]').text('Club is required').show();
+                }
+
+                // Check EventDate
+                if (!$('#EventDate').val()) {
+                    isValid = false;
+                    $('#EventDate').addClass('is-invalid');
+                    $('[data-valmsg-for="EventDate"]').text('Event date is required').show();
+                } else {
+                    // Check if date is in the future
+                    var eventDate = new Date($('#EventDate').val());
+                    var now = new Date();
+                    if (eventDate <= now) {
+                        isValid = false;
+                        $('#EventDate').addClass('is-invalid');
+                        $('[data-valmsg-for="EventDate"]').text('Event date must be in the future').show();
+                    }
+                }
+
+                // Check Location
+                if (!$('#Location').val()) {
+                    isValid = false;
+                    $('#Location').addClass('is-invalid');
+                    $('[data-valmsg-for="Location"]').text('Location is required').show();
+                }
+
+                // Check SeatLimit
+                if (!$('#SeatLimit').val() || $('#SeatLimit').val() < 1) {
+                    isValid = false;
+                    $('#SeatLimit').addClass('is-invalid');
+                    $('[data-valmsg-for="SeatLimit"]').text('Seat limit must be at least 1').show();
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                    console.log('Form validation failed');
+                    return false;
+                }
+
+                console.log('Form validation passed, submitting...');
+                return true;
+            });
+
+            // Clear validation errors when field is changed
+            $('input, textarea, select').on('change', function() {
+                $(this).removeClass('is-invalid');
+                $('[data-valmsg-for="' + $(this).attr('id') + '"]').text('').hide();
+            });
+        });
+    </script>
 }

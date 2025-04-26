@@ -2,12 +2,30 @@
     ViewData["Title"] = "Admin Dashboard";
 }
 
+<style>
+    .card-stats {
+        height: 140px !important; /* Fixed height for all dashboard cards */
+    }
+    .card-stats .card-body {
+        height: 90px !important;
+    }
+    .card-stats .card-footer {
+        height: 50px !important;
+        display: flex;
+        align-items: center;
+    }
+    .card-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+</style>
+
 <h1 class="h3 mb-3 text-gray-800">Dashboard Overview</h1>
 
 <div class="row">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card card-stats primary shadow h-100 py-1">
-            <div class="card-body py-2">
+        <div class="card card-stats primary shadow h-100 py-2">
+            <div class="card-body py-3">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="card-title text-uppercase mb-1">Total Users</div>
@@ -18,7 +36,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card-footer py-1">
+            <div class="card-footer py-2">
                 <a class="stretched-link text-primary small" asp-action="Users">
                     View Details <i class="fas fa-arrow-right"></i>
                 </a>
@@ -27,8 +45,8 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card card-stats success shadow h-100 py-1">
-            <div class="card-body py-2">
+        <div class="card card-stats success shadow h-100 py-2">
+            <div class="card-body py-3">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="card-title text-uppercase mb-1">Total Clubs</div>
@@ -39,7 +57,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card-footer py-1">
+            <div class="card-footer py-2">
                 <a class="stretched-link text-success small" asp-action="Clubs">
                     View Details <i class="fas fa-arrow-right"></i>
                 </a>
@@ -48,8 +66,8 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card card-stats info shadow h-100 py-1">
-            <div class="card-body py-2">
+        <div class="card card-stats info shadow h-100 py-2">
+            <div class="card-body py-3">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="card-title text-uppercase mb-1">Total Events</div>
@@ -60,7 +78,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card-footer py-1">
+            <div class="card-footer py-2">
                 <a class="stretched-link text-info small" asp-action="Events">
                     View Details <i class="fas fa-arrow-right"></i>
                 </a>
@@ -69,8 +87,8 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card card-stats warning shadow h-100 py-1">
-            <div class="card-body py-2">
+        <div class="card card-stats warning shadow h-100 py-2">
+            <div class="card-body py-3">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="card-title text-uppercase mb-1">Pending Approvals</div>
@@ -81,7 +99,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card-footer py-1">
+            <div class="card-footer py-2">
                 <a class="stretched-link text-warning small" href="#">
                     View Details <i class="fas fa-arrow-right"></i>
                 </a>

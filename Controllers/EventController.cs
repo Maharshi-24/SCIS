@@ -212,101 +212,191 @@ namespace SCIS.Controllers
         [Authorize(Roles = "SystemAdmin,ContentAdmin,ClubPresident")]
         public async Task<IActionResult> Create(EventViewModel eventViewModel)
         {
-            try
+            // Log the raw form data for debugging
+            Console.WriteLine("Create Event form data:");
+            Console.WriteLine($"Name: '{eventViewModel.Name}'");
+            Console.WriteLine($"Description: '{eventViewModel.Description}'");
+            Console.WriteLine($"ClubId: '{eventViewModel.ClubId}'");
+            Console.WriteLine($"EventDate: '{eventViewModel.EventDate}'");
+            Console.WriteLine($"SeatLimit: '{eventViewModel.SeatLimit}'");
+            Console.WriteLine($"Location: '{eventViewModel.Location}'");
+
+            // Check if the form data is being properly submitted
+            var form = await Request.ReadFormAsync();
+            foreach (var key in form.Keys)
             {
-                // Log the form submission for debugging
-                Console.WriteLine($"Create Event form submitted: Name={eventViewModel.Name}, ClubId={eventViewModel.ClubId}, EventDate={eventViewModel.EventDate}, Location={eventViewModel.Location}");
-
-                var currentUser = await _userManager.GetUserAsync(User);
-                if (currentUser == null)
-                {
-                    return Challenge();
-                }
-
-                var isAdmin = await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.SystemAdmin) ||
-                              await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.ContentAdmin);
-
-                // Verify user has permission to create event for this club
-                if (!isAdmin)
-                {
-                    var club = await _context.Clubs.FirstOrDefaultAsync(c => c.ClubId == eventViewModel.ClubId);
-                    if (club == null || club.PresidentId != currentUser.Id)
-                    {
-                        return Forbid();
-                    }
-                }
-
-                // Ensure the event date is valid
-                if (eventViewModel.EventDate < DateTime.Now)
-                {
-                    ModelState.AddModelError("EventDate", "Event date must be in the future");
-                }
-
-                if (ModelState.IsValid)
-                {
-                    var evt = new Event
-                    {
-                        Name = eventViewModel.Name,
-                        Description = eventViewModel.Description,
-                        ClubId = eventViewModel.ClubId,
-                        EventDate = eventViewModel.EventDate,
-                        SeatLimit = eventViewModel.SeatLimit,
-                        Location = eventViewModel.Location ?? string.Empty,
-                        RegisteredUsers = string.Empty,
-                        Winners = string.Empty,
-                        IsActive = true
-                    };
-
-                    _context.Events.Add(evt);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Event created successfully";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                // Log validation errors for debugging
-                foreach (var modelState in ModelState.Values)
-                {
-                    foreach (var error in modelState.Errors)
-                    {
-                        Console.WriteLine($"Validation error: {error.ErrorMessage}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log the exception
-                Console.WriteLine($"Error creating event: {ex.Message}");
-                ModelState.AddModelError(string.Empty, $"Error creating event: {ex.Message}");
+                Console.WriteLine($"Form key: {key}, Value: {form[key]}");
             }
 
-            // If we got this far, something failed, redisplay form
-            var currentUser2 = await _userManager.GetUserAsync(User);
-            var isAdmin2 = await _userManager.IsInRoleAsync(currentUser2, Constants.UserRoles.SystemAdmin) ||
-                          await _userManager.IsInRoleAsync(currentUser2, Constants.UserRoles.ContentAdmin);
-
-            if (isAdmin2)
+            // Get the current user
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
             {
-                var allClubs = await _context.Clubs.ToListAsync();
-                eventViewModel.AvailableClubs = allClubs.Select(c => new SelectListItem
-                {
-                    Value = c.ClubId.ToString(),
-                    Text = c.Name,
-                    Selected = c.ClubId == eventViewModel.ClubId
-                }).ToList();
+                TempData["ErrorMessage"] = "User authentication failed. Please log in again.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Check if user is admin
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.SystemAdmin) ||
+                          await _userManager.IsInRoleAsync(currentUser, Constants.UserRoles.ContentAdmin);
+
+            // Manual validation
+            var isValid = true;
+
+            // Validate Name
+            if (string.IsNullOrWhiteSpace(eventViewModel.Name))
+            {
+                ModelState.AddModelError("Name", "Event name is required");
+                isValid = false;
+            }
+
+            // Validate ClubId
+            if (eventViewModel.ClubId <= 0)
+            {
+                ModelState.AddModelError("ClubId", "Club is required");
+                isValid = false;
             }
             else
             {
-                var managedClubs = await _context.Clubs
-                    .Where(c => c.PresidentId == currentUser2.Id)
-                    .ToListAsync();
-
-                eventViewModel.AvailableClubs = managedClubs.Select(c => new SelectListItem
+                // Verify club exists
+                var club = await _context.Clubs.FindAsync(eventViewModel.ClubId);
+                if (club == null)
                 {
-                    Value = c.ClubId.ToString(),
-                    Text = c.Name,
-                    Selected = c.ClubId == eventViewModel.ClubId
-                }).ToList();
+                    ModelState.AddModelError("ClubId", "Selected club does not exist");
+                    isValid = false;
+                }
+                else if (!isAdmin && club.PresidentId != currentUser.Id)
+                {
+                    // Verify user has permission to create event for this club
+                    ModelState.AddModelError("ClubId", "You don't have permission to create events for this club");
+                    isValid = false;
+                }
+            }
+
+            // Validate EventDate
+            if (eventViewModel.EventDate < DateTime.Now)
+            {
+                ModelState.AddModelError("EventDate", "Event date must be in the future");
+                isValid = false;
+            }
+
+            // Validate Location
+            if (string.IsNullOrWhiteSpace(eventViewModel.Location))
+            {
+                ModelState.AddModelError("Location", "Location is required");
+                isValid = false;
+            }
+
+            // Validate SeatLimit
+            if (eventViewModel.SeatLimit <= 0)
+            {
+                ModelState.AddModelError("SeatLimit", "Seat limit must be greater than 0");
+                isValid = false;
+            }
+
+            if (isValid)
+            {
+                try
+                {
+                    // Begin a transaction
+                    using (var transaction = await _context.Database.BeginTransactionAsync())
+                    {
+                        try
+                        {
+                            // Create the event object
+                            var evt = new Event
+                            {
+                                Name = eventViewModel.Name,
+                                Description = eventViewModel.Description ?? string.Empty,
+                                ClubId = eventViewModel.ClubId,
+                                EventDate = eventViewModel.EventDate,
+                                SeatLimit = eventViewModel.SeatLimit,
+                                Location = eventViewModel.Location ?? string.Empty,
+                                RegisteredUsers = string.Empty,
+                                Winners = string.Empty,
+                                IsActive = true
+                            };
+
+                            // Add the event to the database
+                            _context.Events.Add(evt);
+                            await _context.SaveChangesAsync();
+
+                            // Commit the transaction
+                            await transaction.CommitAsync();
+
+                            TempData["SuccessMessage"] = $"Event '{evt.Name}' created successfully";
+                            return RedirectToAction(nameof(Index));
+                        }
+                        catch (Exception ex)
+                        {
+                            // Roll back the transaction if any operation fails
+                            await transaction.RollbackAsync();
+                            throw; // Re-throw to be caught by the outer try-catch
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception
+                    Console.WriteLine($"Error creating event: {ex.Message}");
+                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                    ModelState.AddModelError(string.Empty, $"Error creating event: {ex.Message}");
+                    TempData["ErrorMessage"] = $"Error creating event: {ex.Message}";
+                }
+            }
+
+            // If we got this far, something failed, redisplay form
+            // Log validation errors for debugging
+            Console.WriteLine("Validation errors:");
+            foreach (var key in ModelState.Keys)
+            {
+                foreach (var error in ModelState[key].Errors)
+                {
+                    Console.WriteLine($"- {key}: {error.ErrorMessage}");
+                    // Add all errors to TempData for user feedback
+                    TempData[$"Error_{key}"] = error.ErrorMessage;
+                }
+            }
+
+            // Repopulate available clubs
+            try
+            {
+                if (isAdmin)
+                {
+                    var allClubs = await _context.Clubs.ToListAsync();
+                    eventViewModel.AvailableClubs = allClubs.Select(c => new SelectListItem
+                    {
+                        Value = c.ClubId.ToString(),
+                        Text = c.Name,
+                        Selected = c.ClubId == eventViewModel.ClubId
+                    }).ToList();
+                }
+                else
+                {
+                    var managedClubs = await _context.Clubs
+                        .Where(c => c.PresidentId == currentUser.Id)
+                        .ToListAsync();
+
+                    eventViewModel.AvailableClubs = managedClubs.Select(c => new SelectListItem
+                    {
+                        Value = c.ClubId.ToString(),
+                        Text = c.Name,
+                        Selected = c.ClubId == eventViewModel.ClubId
+                    }).ToList();
+                }
+
+                // Add empty option
+                eventViewModel.AvailableClubs.Insert(0, new SelectListItem
+                {
+                    Value = "",
+                    Text = "-- Select Club --",
+                    Selected = eventViewModel.ClubId <= 0
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error preparing view model: {ex.Message}");
+                TempData["ErrorMessage"] = "An error occurred while preparing the form. Please try again.";
             }
 
             return View(eventViewModel);

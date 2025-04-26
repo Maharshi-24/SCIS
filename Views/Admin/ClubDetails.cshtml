@@ -411,8 +411,32 @@
                 var userId = button.data('user-id');
                 var userName = button.data('user-name');
 
+                console.log('Remove member modal opened for user ID: ' + userId + ', name: ' + userName);
+
                 $('#memberIdToRemove').val(userId);
                 $('#memberNameToRemove').text(userName);
+            });
+
+            // Add form validation for remove member
+            $('form[asp-action="RemoveMember"]').on('submit', function(e) {
+                var userId = $('#memberIdToRemove').val();
+                var clubId = $(this).find('input[name="clubId"]').val();
+
+                if (!userId || userId === '') {
+                    e.preventDefault();
+                    alert('Error: User ID is missing. Please try again.');
+                    console.error('Form submission prevented: User ID is missing');
+                    return false;
+                }
+
+                if (!clubId || clubId === '0' || clubId === '') {
+                    e.preventDefault();
+                    alert('Error: Club ID is missing. Please try again.');
+                    console.error('Form submission prevented: Club ID is missing or invalid');
+                    return false;
+                }
+
+                console.log('Submitting remove member form for user ID: ' + userId + ', club ID: ' + clubId);
             });
 
             // Handle approve member modal
@@ -421,8 +445,32 @@
                 var userId = button.data('user-id');
                 var userName = button.data('user-name');
 
+                console.log('Approve member modal opened for user ID: ' + userId + ', name: ' + userName);
+
                 $('#memberIdToApprove').val(userId);
                 $('#memberNameToApprove').text(userName);
+            });
+
+            // Add form validation for approve member
+            $('form[asp-action="ApproveMembership"]').on('submit', function(e) {
+                var userId = $('#memberIdToApprove').val();
+                var clubId = $(this).find('input[name="clubId"]').val();
+
+                if (!userId || userId === '') {
+                    e.preventDefault();
+                    alert('Error: User ID is missing. Please try again.');
+                    console.error('Form submission prevented: User ID is missing');
+                    return false;
+                }
+
+                if (!clubId || clubId === '0' || clubId === '') {
+                    e.preventDefault();
+                    alert('Error: Club ID is missing. Please try again.');
+                    console.error('Form submission prevented: Club ID is missing or invalid');
+                    return false;
+                }
+
+                console.log('Submitting approve member form for user ID: ' + userId + ', club ID: ' + clubId);
             });
 
             // Handle reject member modal
@@ -431,8 +479,32 @@
                 var userId = button.data('user-id');
                 var userName = button.data('user-name');
 
+                console.log('Reject member modal opened for user ID: ' + userId + ', name: ' + userName);
+
                 $('#memberIdToReject').val(userId);
                 $('#memberNameToReject').text(userName);
+            });
+
+            // Add form validation for reject member
+            $('form[asp-action="RejectMembership"]').on('submit', function(e) {
+                var userId = $('#memberIdToReject').val();
+                var clubId = $(this).find('input[name="clubId"]').val();
+
+                if (!userId || userId === '') {
+                    e.preventDefault();
+                    alert('Error: User ID is missing. Please try again.');
+                    console.error('Form submission prevented: User ID is missing');
+                    return false;
+                }
+
+                if (!clubId || clubId === '0' || clubId === '') {
+                    e.preventDefault();
+                    alert('Error: Club ID is missing. Please try again.');
+                    console.error('Form submission prevented: Club ID is missing or invalid');
+                    return false;
+                }
+
+                console.log('Submitting reject member form for user ID: ' + userId + ', club ID: ' + clubId);
             });
         });
     </script>
